@@ -126,8 +126,41 @@ class KEKBox:
 
 
 class KEKObject:
-    pass
+    """Describes one object on one image.
+
+    PASCAL VOC annotation format has some metadata about object:
+    - truncated;
+    - difficult;
+    - pose;
+    - name;
+    etc.
+
+    MS COCO - same.
+
+    Darknet has no object metadata except class id.
+    """
+    def __init__(self, class_id: int, class_name: str, kek_box: Iterable[KEKBox],
+                 pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None ) -> None:
+        """
+        :param class_id: Integer label for class;
+        :param class_name: String label for class;
+        :param kek_box: List of kek-boxes;
+        :param pascal_voc_metadata: Dictionary with metadata specified for PASCAL VOC;
+        :param ms_coco_metadata: Dictionary with metadata specified for MS COCO.
+        """
+        self.class_id = class_id
+        self.class_name = class_name
+        self.kek_box = kek_box
+        self.pv_metadata = pascal_voc_metadata
+        self.mc_metadata = ms_coco_metadata
 
 
 class KEKFormat:
-    pass
+    """Describes all objects on one image and image metadata."""
+    def __init__(self, kek_objects: Iterable[KEKObject], image_metadata: dict = None) -> None:
+        """
+        :param kek_objects: List of KEK-objects;
+        :param image_metadata: Dictionary with image's metadata.
+        """
+        self.kek_objects = kek_objects
+        self.image_metadata = image_metadata
