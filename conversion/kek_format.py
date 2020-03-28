@@ -1,6 +1,7 @@
 """This module contains classes and functions that do intermediate object KEK-representation
 of different annotation formats like MS COCO, PASCAL VOC, Darknet, etc."""
-from typing import Iterable, List, Union, Tuple
+from decimal import Decimal
+from typing import Iterable, Union, Tuple
 
 
 class KEKBox:
@@ -10,13 +11,15 @@ class KEKBox:
 
     Yea, it's simple a PASCAL VOC bounding-box format."""
     def __init__(self, box: Iterable[Union[float, int]]) -> None:
-        """
-        :param box: Bounding-box in some format.
-        """
-        self.box = tuple(box)
+        top_left_x, top_left_y, bottom_right_x, bottom_right_y = box
+        self.top_left_x = top_left_x
+        self.top_left_y = top_left_y
+        self.bottom_right_x = bottom_right_x
+        self.bottom_right_y = bottom_right_y
 
     def __repr__(self) -> str:
-        str_box = '[{}]'.format(','.join(map(str, self.box)))
+        str_box = '({})'.format(', '.join(map(str, [self.top_left_x, self.top_left_y,
+                                                    self.bottom_right_x, self.bottom_right_y])))
         return str_box
 
     @classmethod
@@ -29,64 +32,50 @@ class KEKBox:
 
         :return: KEKBox.
         """
-        def convert(scaled_float_box: Iterable[float], image_w: int,
-                    image_h: int) -> Tuple[int, int, int, int]:
+        def convert(str_box: str, image_width: int, image_height: int) -> Tuple[int, int, int, int]:
             """
             Converts darknet box coordinates to KEK box coordinates.
 
-            :param scaled_float_box: Darknet box coordinates;
-            :param image_w: Width of image;
-            :param image_h: Height of image.
+            :param str_box: Darknet box coordinates;
+            :param image_width: Width of image;
+            :param image_height: Height of image.
 
             :return: KEK box coordinates.
             """
-            cx, cy, w, h = scaled_float_box
-            tlx = int((cx - w / 2.) * image_w)
-            tly = int((cy - h / 2.) * image_h)
-            brx = int((cx + w / 2.) * image_w)
-            bry = int((cy + h / 2.) * image_h)
+            _, center_x, center_y, box_width, box_height = map(Decimal, str_box.split(' '))
+            denominator = Decimal('2.')
+            top_left_x = int((center_x - box_width / denominator) * image_width)
+            top_left_y = int((center_y - box_height / denominator) * image_height)
+            bottom_right_x = int((center_x + box_width / denominator) * image_width)
+            bottom_right_y = int((center_y + box_height / denominator) * image_height)
 
             # Sometimes shit happens, guys.
-            if tlx < 0:
-                tlx = 0
-            if tly < 0:
-                tly = 0
-            if brx > image_width:
-                brx = image_width
-            if bry > image_height:
-                bry = image_height
+            if top_left_x < 0:
+                top_left_x = 0
+            if top_left_y < 0:
+                top_left_y = 0
+            if bottom_right_x > image_width:
+                bottom_right_x = image_width
+            if bottom_right_y > image_height:
+                bottom_right_y = image_height
 
-            return tlx, tly, brx, bry
+            return top_left_x, top_left_y, bottom_right_x, bottom_right_y
 
         image_height, image_width, _ = image_shape
-        if isinstance(box, str):
-            # Darknet box might comes from string, for example 'class_id xc yc w h' - format.
-            return cls(convert(list(map(float, box.split(' ')))[1:], image_width, image_height))
+        if not isinstance(box, str):
+            # Sometimes it's float.
+            return cls(convert(' '.join((map(str, box))), image_width, image_height))
         else:
-            return cls(convert(box[1:], image_width, image_height))
+            return cls(convert(box, image_width, image_height))
 
     @classmethod
     def from_voc(cls, box: Iterable[int]) -> 'KEKBox':
-        """
-        Make KEKBox from PASCAL VOC box representation.
-
-        :param box: PASCAL VOC box.
-
-        :return: KEKBox.
-        """
         return cls(box)
 
     @ classmethod
     def from_coco(cls, box: Iterable[float]) -> 'KEKBox':
-        """
-        Makes KEKBox from MS COCO box representation.
-
-        :param box: MS COCO box.
-
-        :return: KEKBox.
-        """
-        tlx, tly, w, h = box
-        return cls((int(tlx), int(tly), int(tlx + w), int(tly + h)))
+        top_left_x, top_left_y, box_width, box_height = box
+        return cls((int(top_left_x), int(top_left_y), int(top_left_x + box_width), int(top_left_y + box_height)))
 
     def to_darknet_box(self, image_shape: Tuple[int, int, int]) -> Tuple[float, float, float, float]:
         """
@@ -96,33 +85,24 @@ class KEKBox:
 
         :return: Darknet scaled box.
         """
-        tlx, tly, brx, bry = self.box
         image_height, image_width, _ = image_shape
-        dw = 1. / image_width
-        dh = 1. / image_height
-        xc = dw * (tlx + brx) / 2.
-        yc = dh * (tly + bry) / 2.
-        bw = dw * (brx - tlx)
-        bh = dh * (bry - tly)
-        return xc, yc, bw, bh
+        nominator = Decimal('1.')
+        denominator = Decimal('2.')
+        dw = nominator / image_width
+        dh = nominator / image_height
+        center_x = dw * (self.top_left_x + self.bottom_right_x) / denominator
+        center_y = dh * (self.top_left_y + self.bottom_right_y) / denominator
+        box_width = dw * (self.bottom_right_x - self.top_left_x)
+        box_height = dh * (self.bottom_right_y - self.top_left_y)
+        return float(center_x), float(center_y), float(box_width), float(box_height)
 
     def to_voc_box(self) -> Tuple[int, int, int, int]:
-        """
-        Converts KEKBox to PASCAL VOC box.
-
-        :return: PASCAL VOC box.
-        """
-        tlx, tly, brx, bry = self.box
-        return tlx, tly, brx, bry
+        return self.top_left_x, self.top_left_y, self.bottom_right_x, self.bottom_right_y
 
     def to_coco_box(self) -> Tuple[int, int, int, int]:
-        """
-        Converts KEKBox to MS COCO box.
-
-        :return: MS COCO box.
-        """
-        tlx, tly, brx, bry = self.box
-        return tlx, tly, brx - tlx, bry - tly
+        box_width = self.bottom_right_x - self.top_left_x
+        box_height = self.bottom_right_y - self.top_left_y
+        return self.top_left_x, self.top_left_y, box_width, box_height
 
 
 class KEKObject:
@@ -140,7 +120,7 @@ class KEKObject:
     Darknet has no object metadata except class id.
     """
     def __init__(self, class_id: int, class_name: str, kek_box: Iterable[KEKBox],
-                 pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None ) -> None:
+                 pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None) -> None:
         """
         :param class_id: Integer label for class;
         :param class_name: String label for class;
