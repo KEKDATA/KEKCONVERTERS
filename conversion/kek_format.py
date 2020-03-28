@@ -42,7 +42,7 @@ class KEKBox:
 
             :return: KEK box coordinates.
             """
-            _, center_x, center_y, box_width, box_height = map(Decimal, str_box.split(' '))
+            center_x, center_y, box_width, box_height = map(Decimal, str_box.split(' '))
             denominator = Decimal('2.')
             top_left_x = int((center_x - box_width / denominator) * image_width)
             top_left_y = int((center_y - box_height / denominator) * image_height)
@@ -88,12 +88,12 @@ class KEKBox:
         image_height, image_width, _ = image_shape
         nominator = Decimal('1.')
         denominator = Decimal('2.')
-        dw = nominator / image_width
-        dh = nominator / image_height
-        center_x = dw * (self.top_left_x + self.bottom_right_x) / denominator
-        center_y = dh * (self.top_left_y + self.bottom_right_y) / denominator
-        box_width = dw * (self.bottom_right_x - self.top_left_x)
-        box_height = dh * (self.bottom_right_y - self.top_left_y)
+        width_scale_factor = nominator / image_width
+        height_scale_factor = nominator / image_height
+        center_x = width_scale_factor * (self.top_left_x + self.bottom_right_x) / denominator
+        center_y = height_scale_factor * (self.top_left_y + self.bottom_right_y) / denominator
+        box_width = width_scale_factor * (self.bottom_right_x - self.top_left_x)
+        box_height = height_scale_factor * (self.bottom_right_y - self.top_left_y)
         return float(center_x), float(center_y), float(box_width), float(box_height)
 
     def to_voc_box(self) -> Tuple[int, int, int, int]:
