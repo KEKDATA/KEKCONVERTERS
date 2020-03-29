@@ -119,7 +119,7 @@ class KEKObject:
 
     Darknet has no object metadata except class id.
     """
-    def __init__(self, class_id: int, class_name: str, kek_box: Iterable[KEKBox],
+    def __init__(self, class_id: int = None, class_name: str = None, kek_box: KEKBox = None,
                  pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None) -> None:
         """
         :param class_id: Integer label for class;
@@ -137,7 +137,7 @@ class KEKObject:
 
 class KEKFormat:
     """Describes all objects on one image and image metadata."""
-    def __init__(self, kek_objects: Iterable[KEKObject], image_metadata: dict = None) -> None:
+    def __init__(self, kek_objects: Iterable[KEKObject], image_metadata: dict) -> None:
         """
         :param kek_objects: List of KEK-objects;
         :param image_metadata: Dictionary with image's metadata.
