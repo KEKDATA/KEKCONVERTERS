@@ -1,6 +1,6 @@
 import pytest
 
-from conversion.kek_format import KEKBox
+from conversion.entities import KEKBox
 
 IMAGE_WIDTH = 500
 IMAGE_HEIGHT = 500
