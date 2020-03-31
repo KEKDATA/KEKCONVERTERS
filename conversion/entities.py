@@ -75,7 +75,7 @@ class KEKBox:
     @ classmethod
     def from_coco(cls, box: Iterable[float]) -> 'KEKBox':
         top_left_x, top_left_y, box_width, box_height = box
-        return cls((int(top_left_x), int(top_left_y), int(top_left_x + box_width), int(top_left_y + box_height)))
+        return cls((top_left_x, top_left_y, top_left_x + box_width, top_left_y + box_height))
 
     def to_darknet_box(self, image_shape: Tuple[int, int, int]) -> Tuple[float, float, float, float]:
         """
@@ -119,17 +119,20 @@ class KEKObject:
 
     Darknet has no object metadata except class id.
     """
-    def __init__(self, class_id: int = None, class_name: str = None, kek_box: KEKBox = None,
+    def __init__(self, class_id: int = None, class_name: str = None,
+                 superclass: str = None, kek_box: KEKBox = None,
                  pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None) -> None:
         """
         :param class_id: Integer label for class;
         :param class_name: String label for class;
+        :param superclass: String label for supercategory;
         :param kek_box: List of kek-boxes;
         :param pascal_voc_metadata: Dictionary with metadata specified for PASCAL VOC;
         :param ms_coco_metadata: Dictionary with metadata specified for MS COCO.
         """
         self.class_id = class_id
         self.class_name = class_name
+        self.superclass = superclass
         self.kek_box = kek_box
         self.pv_metadata = pascal_voc_metadata
         self.mc_metadata = ms_coco_metadata
