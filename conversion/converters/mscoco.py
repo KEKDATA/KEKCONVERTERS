@@ -93,6 +93,7 @@ def kek2mscoco(kek_format: KEKImage,
 def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
                                                                     Union[List[float], int]]], int]]:
     json_file = dict.fromkeys(('annotation', 'image'))
+    categories = {}
 
     # Image data.
     image_dict = kek_image.additional_data
@@ -109,8 +110,13 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
         ms_coco_metadata.update({'category_id': kek_object.class_id + 1,
                                  'bbox': kek_object.kek_box.to_coco_box()})
         annotations.append(ms_coco_metadata)
+        categories.update(
+            {kek_object.class_id + 1: {
+                'category_id': kek_object.class_id + 1,
+                'name': kek_object.class_name
+            }})
     json_file['annotation'] = annotations
-    return json_file
+    return json_file, categories
 
 
 def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
