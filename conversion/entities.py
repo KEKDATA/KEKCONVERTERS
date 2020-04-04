@@ -22,6 +22,14 @@ class KEKBox:
                                                     self.bottom_right_x, self.bottom_right_y])))
         return str_box
 
+    def __len__(self):
+        return 4
+
+    def __iter__(self):
+        for coordinate in (self.top_left_x, self.top_left_y,
+                           self.bottom_right_x, self.bottom_right_y):
+            yield coordinate
+
     @classmethod
     def from_darknet(cls, box: Union[Iterable[float], str], image_shape: Tuple[int, int, int]) -> 'KEKBox':
         """
@@ -119,31 +127,40 @@ class KEKObject:
 
     Darknet has no object metadata except class id.
     """
-    def __init__(self, class_id: int = None, class_name: str = None,
-                 superclass: str = None, kek_box: KEKBox = None,
-                 pascal_voc_metadata: dict = None, ms_coco_metadata: dict = None) -> None:
+    def __init__(self, class_id: int = None, class_name: str = None, kek_box: KEKBox = None,
+                 object_additional_data: dict = None) -> None:
         """
         :param class_id: Integer label for class;
         :param class_name: String label for class;
-        :param superclass: String label for supercategory;
-        :param kek_box: List of kek-boxes;
-        :param pascal_voc_metadata: Dictionary with metadata specified for PASCAL VOC;
-        :param ms_coco_metadata: Dictionary with metadata specified for MS COCO.
+        :param kek_box: Bounding-box in KEKBox format;
+        :param object_additional_data: Dictionary with additional data about object. See README.md file
+                                       for description.
         """
         self.class_id = class_id
         self.class_name = class_name
-        self.superclass = superclass
         self.kek_box = kek_box
-        self.pv_metadata = pascal_voc_metadata
-        self.mc_metadata = ms_coco_metadata
+        self.additional_data = object_additional_data
+
+    def __repr__(self):
+        representation = 'KEKObject: [class_id = {}, class_name = {}, KEKBox = {}, additional_data = {}]'.format(
+            str(self.class_id), self.class_name, str(self.kek_box), self.additional_data)
+        return representation
 
 
-class KEKFormat:
+class KEKImage:
     """Describes all objects on one image and image metadata."""
-    def __init__(self, kek_objects: Iterable[KEKObject], image_metadata: dict) -> None:
-        """
-        :param kek_objects: List of KEK-objects;
-        :param image_metadata: Dictionary with image's metadata.
-        """
+    def __init__(self, id_: int, filename: str, image_shape: Tuple,
+                 kek_objects: Iterable[KEKObject],
+                 image_additional_data: dict = None) -> None:
+        self.id_ = id_
+        self.filename = filename
+        self.shape = image_shape
         self.kek_objects = kek_objects
-        self.image_metadata = image_metadata
+        self.additional_data = image_additional_data
+
+    def __repr__(self):
+        head_info = ('KEKImage: id: {}, filename: {}, image_shape: {'
+                     '}\n').format(self.id_, self.filename, self.shape)
+        kek_objects_info = '\n'.join(map(str, (kek_object for kek_object in self.kek_objects)))
+        additional_info = '\nAdditional: {}'.format(self.additional_data)
+        return head_info + kek_objects_info + additional_info
