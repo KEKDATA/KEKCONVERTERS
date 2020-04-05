@@ -187,8 +187,8 @@ def kek2pascalvoc(kek_image: KEKImage):
             sub.text = str(value)
         elif isinstance(value, dict):
             sub_root = ET.SubElement(root, key)
-            for sk, sv in value.items():
-                append_data_from_dict_to_xml(sk, sv, sub_root)
+            for sub_key, sub_value in value.items():
+                append_data_from_dict_to_xml(sub_key, sub_value, sub_root)
         elif isinstance(value, list):
             for element in value:
                 append_data_from_dict_to_xml(key, element, root)
