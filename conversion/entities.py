@@ -69,7 +69,7 @@ class KEKBox:
 
             return top_left_x, top_left_y, bottom_right_x, bottom_right_y
 
-        image_height, image_width, _ = image_shape
+        image_width, image_height, _ = image_shape
         if not isinstance(box, str):
             # Sometimes it's float.
             return cls(convert(' '.join((map(str, box))), image_width, image_height))
@@ -93,13 +93,15 @@ class KEKBox:
 
         :return: Darknet scaled box.
         """
-        image_height, image_width, _ = image_shape
+        image_width, image_height, _ = image_shape
         nominator = Decimal('1.')
         denominator = Decimal('2.')
         width_scale_factor = nominator / image_width
         height_scale_factor = nominator / image_height
-        center_x = width_scale_factor * (self.top_left_x + self.bottom_right_x) / denominator
-        center_y = height_scale_factor * (self.top_left_y + self.bottom_right_y) / denominator
+        center_x = width_scale_factor * (
+                (self.top_left_x + self.bottom_right_x) / denominator - 1)
+        center_y = height_scale_factor * (
+                (self.top_left_y + self.bottom_right_y) / denominator - 1)
         box_width = width_scale_factor * (self.bottom_right_x - self.top_left_x)
         box_height = height_scale_factor * (self.bottom_right_y - self.top_left_y)
         return float(center_x), float(center_y), float(box_width), float(box_height)

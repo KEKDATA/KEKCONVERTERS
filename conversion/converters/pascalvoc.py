@@ -48,7 +48,7 @@ def _get_kek_box(object_element: ET.Element, xml_name: str) -> KEKBox:
         raise ValueError('Annotation file {} has at least one object '
                          'with empty coordinate tag.'.format(xml_name))
     return KEKBox.from_voc((int(top_left_x), int(top_left_y),
-                            int(bottom_right_x), bottom_right_y))
+                            int(bottom_right_x), int(bottom_right_y)))
 
 
 def _get_name(object_element: ET.Element, xml_name: str) -> str:
@@ -215,8 +215,9 @@ def kek2pascalvoc(kek_image: KEKImage):
         name = ET.SubElement(object_, 'name')
         name.text = kek_object.class_name
         bndbox = ET.SubElement(object_, 'bndbox')
+        kek_box = kek_object.kek_box.to_voc_box()
         for coordinate_tag, coordinate in zip(('xmin', 'ymin', 'xmax', 'ymax'),
-                                              kek_object.kek_box):
+                                              kek_box):
             coordinate_element = ET.SubElement(bndbox, coordinate_tag)
             coordinate_element.text = str(coordinate)
 
