@@ -88,7 +88,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
         :param root:
         :return:
         """
-        text_token = '#text'
+        TEXT_TOKEN = '#text'
         tree_dict = {root.tag: {} if root.attrib else None}
         children = list(root)
         if children:
@@ -102,7 +102,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
             text = root.text.strip()
             if children:
                 if text:
-                    tree_dict[root.tag][text_token] = text
+                    tree_dict[root.tag][TEXT_TOKEN] = text
             else:
                 tree_dict[root.tag] = text
         return tree_dict
@@ -179,8 +179,8 @@ def kek2pascalvoc(kek_image: KEKImage):
         :param root:
         :return:
         """
-        text_mark = '#'
-        if key.startswith(text_mark):
+        TEXT_MARK = '#'
+        if key.startswith(TEXT_MARK):
             root.text = value
         elif isinstance(value, str):
             sub = ET.SubElement(root, key)
