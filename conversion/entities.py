@@ -22,14 +22,6 @@ class KEKBox:
                                                     self.bottom_right_x, self.bottom_right_y])))
         return str_box
 
-    def __len__(self):
-        return 4
-
-    def __iter__(self):
-        for coordinate in (self.top_left_x, self.top_left_y,
-                           self.bottom_right_x, self.bottom_right_y):
-            yield coordinate
-
     @classmethod
     def from_darknet(cls, box: Union[Iterable[float], str], image_shape: Tuple[int, int, int]) -> 'KEKBox':
         """
