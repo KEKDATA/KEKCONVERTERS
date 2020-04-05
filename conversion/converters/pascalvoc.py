@@ -119,16 +119,12 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     else:
         filename = filename.text
     size = annotation.find('size')
-    if size is not None:
-        width = size.find('width')
-        height = size.find('height')
-        depth = size.find('depth')
-        if any((dimension is None for dimension in (width.text, height.text,
-                                                    depth.text))):
-            image_shape = get_image_shape(image)
-        else:
-            image_shape = (int(width.text), int(height.text), int(depth.text))
-    else:
+    try:
+        width = int(size.find('width').text)
+        height = int(size.find('height').text)
+        depth = int(size.find('depth').text)
+        image_shape = width, height, depth
+    except (AttributeError, ValueError, TypeError):
         image_shape = get_image_shape(image)
 
     # These image tags should not be considered as additional data during
