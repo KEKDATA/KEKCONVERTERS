@@ -63,20 +63,3 @@ def kek2darknet(kek_image: KEKImage) -> List[str]:
         darknet_labels.append(' '.join([class_id,
                                         *map(str, darknet_box)]) + '\n')
     return darknet_labels
-
-
-if __name__ == '__main__':
-    path_to_darknet_src = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/conversion_src/darknet'
-    path_to_darknet_dst = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/conversion_results/darknet'
-    path_to_images = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/images/pascalvoc_and_darknet'
-    path_to_darknet_mapper = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/class_mappers/darknet_mapper.json'
-
-    with open(path_to_darknet_mapper, 'r') as jf:
-        class_mapper = json.load(jf)
-    for id_, img in enumerate(os.scandir(path_to_images)):
-        kekf = darknet2kek(img, id_, class_mapper, path_to_darknet_src)
-        dl = kek2darknet(kekf)
-        txt_name = os.path.splitext(img.name)[0] + '.txt'
-        txt_path = os.path.join(path_to_darknet_dst, txt_name)
-        with open(txt_path, 'w') as tf:
-            tf.writelines(dl)

@@ -31,11 +31,10 @@ def _xml2dict(root):
                                 for key, value in children_dict.items()}}
     if root.text:
         text = root.text.strip()
-        if children:
-            if text:
-                tree_dict[root.tag][TEXT_TOKEN] = text
-        else:
+        if not children:
             tree_dict[root.tag] = text
+        elif text:
+            tree_dict[root.tag][TEXT_TOKEN] = text
     return tree_dict
 
 
@@ -231,10 +230,8 @@ def kek2pascalvoc(kek_image: KEKImage):
 
 
 if __name__ == '__main__':
-    path_to_pascalvoc_src = '/home/wammy/PycharmProjects/KEKCONVERTERS' \
-                            '/test_data/conversion_src/pascalvoc'
-    path_to_pascalvoc_dst = '/home/wammy/PycharmProjects/KEKCONVERTERS' \
-                            '/test_data/conversion_results/pascalvoc'
+    path_to_pascalvoc_src = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/source_annotations/pascalvoc'
+    # path_to_pascalvoc_dst = '/test_data/converted_annotations/pascalvoc'
     path_to_images = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/images/pascalvoc_and_darknet'
     path_to_pascalvoc_mapper = \
         '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/class_mappers' \
