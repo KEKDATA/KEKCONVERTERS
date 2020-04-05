@@ -10,8 +10,8 @@ class KEKBox:
         [top left x, top left y, bottom right x, bottom right y]
 
     Yea, it's simple a PASCAL VOC bounding-box format."""
-    def __init__(self, box: Iterable[Union[float, int]]) -> None:
-        top_left_x, top_left_y, bottom_right_x, bottom_right_y = box
+    def __init__(self, top_left_x: int, top_left_y: int, bottom_right_x: int,
+                 bottom_right_y: int) -> None:
         self.top_left_x = top_left_x
         self.top_left_y = top_left_y
         self.bottom_right_x = bottom_right_x
@@ -72,18 +72,19 @@ class KEKBox:
         image_width, image_height, _ = image_shape
         if not isinstance(box, str):
             # Sometimes it's float.
-            return cls(convert(' '.join((map(str, box))), image_width, image_height))
+            return cls(*convert(' '.join((map(str, box))), image_width,
+                                image_height))
         else:
-            return cls(convert(box, image_width, image_height))
+            return cls(*convert(box, image_width, image_height))
 
     @classmethod
     def from_voc(cls, box: Iterable[int]) -> 'KEKBox':
-        return cls(box)
+        return cls(*box)
 
     @ classmethod
     def from_coco(cls, box: Iterable[float]) -> 'KEKBox':
         top_left_x, top_left_y, box_width, box_height = box
-        return cls((top_left_x, top_left_y, top_left_x + box_width, top_left_y + box_height))
+        return cls(top_left_x, top_left_y, top_left_x + box_width, top_left_y + box_height)
 
     def to_darknet_box(self, image_shape: Tuple[int, int, int]) -> Tuple[float, float, float, float]:
         """
