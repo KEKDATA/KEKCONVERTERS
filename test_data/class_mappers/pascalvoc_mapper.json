@@ -1,0 +1,11 @@
+{
+  "car":  0,
+  "truck": 1,
+  "bus":  2,
+  "bicycle": 3,
+  "motorcycle": 4,
+  "person": 5,
+  "plate": 6,
+  "animal": 7,
+  "traffic_light": 8
+}

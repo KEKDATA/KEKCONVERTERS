@@ -180,7 +180,8 @@ def kek2pascalvoc(kek_image: KEKImage):
         TEXT_MARK = '#'
         if key.startswith(TEXT_MARK):
             root.text = value
-        elif isinstance(value, str):
+        elif (isinstance(value, str) or isinstance(value, float) or
+              isinstance(value, int)):
             sub = ET.SubElement(root, key)
             sub.text = str(value)
         elif isinstance(value, dict):
@@ -194,13 +195,12 @@ def kek2pascalvoc(kek_image: KEKImage):
     annotation = ET.Element('annotation')
 
     # Main image data.
-    filename = ET.SubElement(annotation, 'filename')
-    filename.text = kek_image.filename
-    size = ET.SubElement(annotation, 'size')
-    for dimension_name, dimension_value in zip(('width', 'height', 'depth'),
-                                               kek_image.shape):
-        dim = ET.SubElement(size, dimension_name)
-        dim.text = str(dimension_value)
+    append_data_from_dict_to_xml('filename', kek_image.filename, annotation)
+    append_data_from_dict_to_xml(
+        'size',
+        dict(zip(('width', 'height', 'depth'), kek_image.shape)),
+        annotation
+    )
 
     # Additional image data.
     for k, v in kek_image.additional_data.items():
@@ -210,14 +210,13 @@ def kek2pascalvoc(kek_image: KEKImage):
         object_ = ET.SubElement(annotation, 'object')
 
         # Main object data.
-        name = ET.SubElement(object_, 'name')
-        name.text = kek_object.class_name
-        bndbox = ET.SubElement(object_, 'bndbox')
+        append_data_from_dict_to_xml('name', kek_object.class_name, object_)
         kek_box = kek_object.kek_box.to_voc_box()
-        for coordinate_tag, coordinate in zip(('xmin', 'ymin', 'xmax', 'ymax'),
-                                              kek_box):
-            coordinate_element = ET.SubElement(bndbox, coordinate_tag)
-            coordinate_element.text = str(coordinate)
+        append_data_from_dict_to_xml(
+            'bndbox ',
+            dict(zip(('xmin', 'ymin', 'xmax', 'ymax'), kek_box)),
+            object_
+        )
 
         # Additional object data.
         for k, v in kek_object.additional_data.items():
@@ -225,5 +224,6 @@ def kek2pascalvoc(kek_image: KEKImage):
 
     # We don't need header with xml version.
     xml_string = '\n'.join(
-        parseString(ET.tostring(annotation)).toprettyxml().split('\n')[1:])
+        parseString(ET.tostring(annotation)).toprettyxml().split('\n')[1:]
+    )
     return xml_string

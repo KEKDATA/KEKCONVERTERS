@@ -93,4 +93,5 @@ def test_pascalvoc2pascalvoc():
             src_xml_lines = set([line[:-1] for line in tf.readlines()])
         dst_xml_lines = set([line for line in dst_xml_string.split('\n')
                              if line])
-        assert dst_xml_lines == src_xml_lines
+        for src_xml_line in src_xml_lines:
+            assert src_xml_line in dst_xml_lines
