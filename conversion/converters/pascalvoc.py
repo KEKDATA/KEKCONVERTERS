@@ -107,8 +107,10 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
                 tree_dict[root.tag] = text
         return tree_dict
 
-    xml_path = construct_annotation_file_path(image, 'xml',
-                                              base_annotation_path)
+    xml_path = construct_annotation_file_path(
+        image,
+        'xml',
+        base_annotation_path)
     annotation = ET.parse(xml_path).getroot()
 
     # Necessary image data.
