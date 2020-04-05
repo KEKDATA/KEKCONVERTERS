@@ -13,6 +13,32 @@ from conversion.utils import construct_additional_object_data
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
+def _xml2dict(root):
+    """
+
+    :param root:
+    :return:
+    """
+    TEXT_TOKEN = '#text'
+    tree_dict = {root.tag: {} if root.attrib else None}
+    children = list(root)
+    if children:
+        children_dict = defaultdict(list)
+        for child_dict in map(_xml2dict, children):
+            for key, value in child_dict.items():
+                children_dict[key].append(value)
+        tree_dict = {root.tag: {key: value[0] if len(value) == 1 else value
+                                for key, value in children_dict.items()}}
+    if root.text:
+        text = root.text.strip()
+        if children:
+            if text:
+                tree_dict[root.tag][TEXT_TOKEN] = text
+        else:
+            tree_dict[root.tag] = text
+    return tree_dict
+
+
 def _get_kek_box(object_element: ET.Element, xml_name: str) -> KEKBox:
     """
     Converts PASCAL VOC 'bndbox' tag content to KEKBox.
@@ -82,31 +108,6 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     :param base_annotation_path:
     :return:
     """
-    def xml2dict(root):
-        """
-
-        :param root:
-        :return:
-        """
-        TEXT_TOKEN = '#text'
-        tree_dict = {root.tag: {} if root.attrib else None}
-        children = list(root)
-        if children:
-            children_dict = defaultdict(list)
-            for child_dict in map(xml2dict, children):
-                for key, value in child_dict.items():
-                    children_dict[key].append(value)
-            tree_dict = {root.tag: {key: value[0] if len(value) == 1 else value
-                                    for key, value in children_dict.items()}}
-        if root.text:
-            text = root.text.strip()
-            if children:
-                if text:
-                    tree_dict[root.tag][TEXT_TOKEN] = text
-            else:
-                tree_dict[root.tag] = text
-        return tree_dict
-
     xml_path = construct_annotation_file_path(
         image,
         'xml',
@@ -142,7 +143,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     for element in annotation:
         # Additional image data.
         if element.tag not in main_image_tags:
-            image_additional_data.update(xml2dict(element))
+            image_additional_data.update(_xml2dict(element))
 
         elif element.tag == 'object':
             # Necessary object data.
@@ -154,7 +155,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
             object_additional_data = construct_additional_object_data(image_id)
             for object_element in element:
                 if object_element.tag not in main_object_tags:
-                    object_additional_data.update(xml2dict(object_element))
+                    object_additional_data.update(_xml2dict(object_element))
 
             kek_objects.append(KEKObject(class_id, class_name, kek_box,
                                          object_additional_data))
