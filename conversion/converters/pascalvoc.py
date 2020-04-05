@@ -227,24 +227,3 @@ def kek2pascalvoc(kek_image: KEKImage):
     xml_string = '\n'.join(
         parseString(ET.tostring(annotation)).toprettyxml().split('\n')[1:])
     return xml_string
-
-
-if __name__ == '__main__':
-    path_to_pascalvoc_src = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/source_annotations/pascalvoc'
-    # path_to_pascalvoc_dst = '/test_data/converted_annotations/pascalvoc'
-    path_to_images = '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/images/pascalvoc_and_darknet'
-    path_to_pascalvoc_mapper = \
-        '/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/class_mappers' \
-        '/pascalvoc_mapper.json'
-
-    with open(path_to_pascalvoc_mapper, 'r') as jf:
-        class_mapper = json.load(jf)
-    for id_, img in enumerate(os.scandir(path_to_images)):
-        kekf = pascalvoc2kek(img, id_, class_mapper, path_to_pascalvoc_src)
-        print(kek2pascalvoc(kekf))
-        break
-        # dl = kek2darknet(kekf)
-        # txt_name = os.path.splitext(img.name)[0] + '.txt'
-        # txt_path = os.path.join(path_to_pascalvoc_dst, txt_name)
-        # with open(txt_path, 'w') as tf:
-        #     tf.writelines(dl)
