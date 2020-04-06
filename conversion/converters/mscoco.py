@@ -44,6 +44,7 @@ def coco_annotations2kek_objects(
         # Main object data.
         class_id = annotation['category_id']
         try:
+            print(coco_categories)
             category = coco_categories[class_id]
         except KeyError:
             # Some smart guys used string category_id in
@@ -99,7 +100,7 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
     image_dict = kek_image.additional_data
     image_dict.update({'file_name': kek_image.filename})
     width, height, _ = kek_image.shape
-    image_dict.update({'width': kek_image.filename, 'height': height})
+    image_dict.update({'width': width, 'height': height})
     image_dict.update({'id': kek_image.id_})
     json_file['image'] = image_dict
 
@@ -121,8 +122,11 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
 
 def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
                       coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
-    json_path = construct_annotation_file_path(image, 'json',
-                                               base_annotation_path)
+    json_path = construct_annotation_file_path(
+        image,
+        'json',
+        base_annotation_path
+    )
     with open(json_path, 'r') as jf:
         labels = json.load(jf)
 
@@ -147,7 +151,7 @@ def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
     # This keys should not be processed for additional image data.
     main_image_data_keys = ('id', 'file_name', 'width', 'height')
     image_additional_data = construct_additional_image_data(image)
-    for key, value in image_dict:
+    for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})
 

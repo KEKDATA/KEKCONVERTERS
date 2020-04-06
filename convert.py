@@ -80,6 +80,8 @@ if __name__ == '__main__':
             coco_annotations = None
             with open(args.mscoco_categories_path, 'r') as jf:
                 coco_categories = json.load(jf)
+                coco_categories = {
+                    category['id']: category for category in coco_categories}
 
     mscoco_big_dict = None
     categories = None
@@ -115,7 +117,10 @@ if __name__ == '__main__':
     }.get(args.dst_annotation)
     cats = None
     for image_id, image in enumerate(image_iter(args.img_path, img_exts)):
-        kek_format = from_converter(image, image_id, *from_args)
+        if args.src_annotation == 'mscoco':
+            kek_format = from_converter(image, *from_args)
+        else:
+            kek_format = from_converter(image, image_id, *from_args)
         to_args = (kek_format, args.mscoco_hard) if args.mscoco_hard else (kek_format,)
         target_format = to_converter(*to_args)
         if len(target_format) == 2:
