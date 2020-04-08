@@ -49,7 +49,7 @@ def coco_annotations2kek_objects(
             # Some smart guys used string category_id in
             # source annotation file.
             category = coco_categories[int(class_id)]
-            class_id = int(class_id)
+        class_id = int(class_id) - 1
         class_name = category['name']
         kek_box = KEKBox.from_coco(annotation['bbox'])
 
@@ -111,15 +111,23 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
     # Objects data.
     annotations = []
     for kek_object in kek_image.kek_objects:
+        category_id = kek_object.class_id + 1
         ms_coco_metadata = kek_object.additional_data
-        ms_coco_metadata.update({'category_id': kek_object.class_id,
+        ms_coco_metadata.update({'category_id': category_id,
                                  'bbox': kek_object.kek_box.to_coco_box()})
         annotations.append(ms_coco_metadata)
-        categories.update(
-            {kek_object.class_id: {
-                'category_id': kek_object.class_id,
+        category_dict = {
+            category_id: {
+                'category_id': category_id,
                 'name': kek_object.class_name
-            }})
+            }
+        }
+        try:
+            supercategory = kek_object.additional_data['supercategory']
+            category_dict.update({'supercategory': supercategory})
+        except KeyError:
+            pass
+        categories.update({category_id: category_dict})
     json_file['annotation'] = annotations
     return json_file, categories
 
@@ -181,13 +189,13 @@ def kek2mscoco_hard(kek_format: KEKImage) -> Tuple[Dict[str, Union[int, str]],
     categories = {}
     for kek_object in kek_format.kek_objects:
         # Object data.
+        category_id = kek_object.class_id + 1
         ms_coco_metadata = kek_object.additional_data
-        ms_coco_metadata.update({'category_id': kek_object.class_id,
+        ms_coco_metadata.update({'category_id': category_id,
                                  'bbox': kek_object.kek_box.to_coco_box()})
         annotations.append(ms_coco_metadata)
 
         # Categories.
-        category_id = kek_object.class_id
         category_dict = {'id': category_id, 'name': kek_object.class_name}
         try:
             supercategory = kek_object.additional_data['supercategory']
