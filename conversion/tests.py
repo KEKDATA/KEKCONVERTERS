@@ -13,6 +13,17 @@ from conversion.entities import KEKBox
 from conversion.utils import construct_annotation_file_path
 
 
+def compare_darknet_labels(first_label: str, second_label: str,
+                           precision: float = 10e-2) -> bool:
+    numerical_first_label = map(float, first_label.split(' '))
+    numerical_second_label = map(float, second_label.split(' '))
+    first_and_second_labels = zip(numerical_first_label, numerical_second_label)
+    for first_label_element, second_label_element in first_and_second_labels:
+        if abs(first_label_element - second_label_element) > precision:
+            return False
+    return True
+
+
 def is_subdict(subdict: dict, dict_: dict,
                comparator=lambda left, right: left == right) -> bool:
     try:
@@ -78,15 +89,7 @@ def test_darknet2darknet():
         with open(txt_path, 'r') as tf:
             src_darknet_lines = tf.readlines()
         for src_line, dst_line in zip(src_darknet_lines, dst_darknet_lines):
-            (src_class_id, src_center_x, src_center_y, src_box_width,
-             src_box_height) = map(float, src_line.split(' '))
-            (dst_class_id, dst_center_x, dst_center_y, dst_box_width,
-             dst_box_height) = map(float, dst_line.split(' '))
-            assert src_class_id == dst_class_id
-            assert abs(src_center_x - dst_center_x) < 10e-2
-            assert abs(src_center_y - dst_center_y) < 10e-2
-            assert abs(src_box_width - dst_box_width) < 10e-2
-            assert abs(src_box_height - dst_box_height) < 10e-2
+            assert compare_darknet_labels(src_line, dst_line)
 
 
 def test_pascalvoc2pascalvoc():
@@ -238,3 +241,52 @@ def test_mscoco_hard2mscoco_hard():
                 'id'])
             assert is_subdict(src_annotation, t, kek_comparator)
     assert is_subdict(coco_categories, mscoco_big_dict['categories'])
+
+
+def test_pascalvoc2darknet():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'pascalvoc_and_darknet'
+    )
+    pascalvoc_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'pascalvoc'
+    )
+
+    # For comparison.
+    true_darknet_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'darknet'
+    )
+    pascalvoc_mapper_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'class_mappers',
+        'pascalvoc_mapper.json'
+    )
+    with open(pascalvoc_mapper_path, 'r') as jf:
+        class_mapper = json.load(jf)
+    for image_id, img in enumerate(os.scandir(image_path)):
+        kek_image = pv.pascalvoc2kek(
+            img,
+            image_id,
+            class_mapper,
+            pascalvoc_annotation_path
+        )
+        converted_darknet_labels = dn.kek2darknet(kek_image)
+        true_darknet_txt_path = construct_annotation_file_path(
+            img,
+            'txt',
+            true_darknet_annotation_path
+        )
+        with open(true_darknet_txt_path, 'r') as tf:
+            true_darknet_labels = tf.readlines()
+        for converted_label, true_label in zip(converted_darknet_labels,
+                                               true_darknet_labels):
+            assert compare_darknet_labels(converted_label, true_label)
