@@ -102,13 +102,15 @@ class KEKBox:
         width_scale_factor = nominator / image_width
         height_scale_factor = nominator / image_height
 
-        center_x = (self.top_left_x + self.bottom_right_x) / denominator - 1
+        center_x = Decimal(self.top_left_x + self.bottom_right_x)
+        center_x = center_x / denominator - 1
         scaled_center_x = width_scale_factor * center_x
-        center_y = (self.top_left_y + self.bottom_right_y) / denominator - 1
+        center_y = Decimal(self.top_left_y + self.bottom_right_y)
+        center_y = center_y / denominator - 1
         scaled_center_y = height_scale_factor * center_y
-        box_width = self.bottom_right_x - self.top_left_x
+        box_width = Decimal(self.bottom_right_x - self.top_left_x)
         scaled_box_width = width_scale_factor * box_width
-        box_height = self.bottom_right_y - self.top_left_y
+        box_height = Decimal(self.bottom_right_y - self.top_left_y)
         scaled_box_height = height_scale_factor * box_height
         return (float(scaled_center_x), float(scaled_center_y),
                 float(scaled_box_width), float(scaled_box_height))

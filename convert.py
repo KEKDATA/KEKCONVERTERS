@@ -121,7 +121,10 @@ if __name__ == '__main__':
             kek_format = from_converter(image, *from_args)
         else:
             kek_format = from_converter(image, image_id, *from_args)
-        to_args = (kek_format, args.mscoco_hard) if args.mscoco_hard else (kek_format,)
+        if args.dst_annotation == 'mscoco' and args.mscoco_hard:
+            to_args = (kek_format, args.mscoco_hard)
+        else:
+            to_args = (kek_format, )
         target_format = to_converter(*to_args)
         if len(target_format) == 2:
             target_format, cats = target_format
