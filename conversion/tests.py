@@ -160,7 +160,7 @@ def test_darknet2darknet():
     )
     with open(class_mapper_path, 'r') as jf:
         class_mapper = json.load(jf)
-        class_mapper = {int(k): v for k, v in class_mapper.items()}
+        # class_mapper = {int(k): v for k, v in class_mapper.items()}
     for img_id, img in enumerate(os.scandir(image_path)):
         kek_image = dn.darknet2kek(img, img_id, class_mapper,
                                    source_annotation_path)
@@ -401,8 +401,9 @@ def test_darknet2pascalvoc():
         'darknet_mapper.json'
     )
     with open(darknet_mapper_path, 'r') as jf:
-        class_mapper = {int(class_id): class_name for class_id, class_name in
-                        json.load(jf).items()}
+        # class_mapper = {int(class_id): class_name for class_id, class_name in
+                        # json.load(jf).items()}
+        class_mapper = json.load(jf)
     for img_id, img in enumerate(os.scandir(image_path)):
         kek_image = dn.darknet2kek(
             img,

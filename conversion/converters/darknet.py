@@ -48,7 +48,7 @@ def darknet2kek(image: os.DirEntry, image_id: int, class_mapper: Dict[str, str],
         object_additional_data = construct_additional_object_data(image_id)
         kek_objects.append(
             KEKObject(class_id=int(class_id), kek_box=kek_box,
-                      class_name=class_mapper[int(class_id)],
+                      class_name=class_mapper[class_id],
                       object_additional_data=object_additional_data))
 
     return KEKImage(image_id, filename, image_shape, kek_objects,

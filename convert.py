@@ -50,8 +50,8 @@ if __name__ == '__main__':
     parser.add_argument('--mscoco_info_path', '-mip', type=str, required=False, help=MSCOCO_INFO_PATH_HELP)
     parser.add_argument('--mscoco_licenses_path', '-mlp', type=str, required=False, help=MSCOCO_LICENSES_PATH_HELP)
     parser.add_argument('--mscoco_categories_path', '-mcp', type=str, required=False, help=MSCOCO_CATEGORIES_PATH_HELP)
-    parser.add_argument('--darknet_mapping_path', '-dm', type=str, required=False, help=DARKNET_MAPPING_PATH_HELP)
-    parser.add_argument('--pascalvoc_mapping_path', '-pvm', type=str, required=False, help=PASCALVOC_MAPPING_PATH_HELP)
+    parser.add_argument('--class_mapper_path', '-cmp', type=str,
+                        required=False, help='Path to your mapping')
     parser.add_argument('--n_jobs', '-j', type=int, required=False, default=None, help=NJOBS_HELP)
     args = parser.parse_args()
 
@@ -62,15 +62,11 @@ if __name__ == '__main__':
                     'pascalvoc': pv.kek2pascalvoc,
                     'mscoco': mc.kek2mscoco}.get(args.dst_annotation)
 
-    darknet_mapper = None
-    pascalvoc_mapper = None
-    if args.darknet_mapping_path:
-        with open(args.darknet_mapping_path, 'r') as jf:
-            darknet_mapper = json.load(jf)
-        darknet_mapper = {int(key): value for key, value in darknet_mapper.items()}
-    elif args.pascalvoc_mapping_path:
-        with open(args.pascalvoc_mapping_path, 'r') as jf:
-            pascalvoc_mapper = json.load(jf)
+    class_mapper = None
+    if args.class_mapper_path:
+        with open(args.class_mapper_path, 'r') as jf:
+            class_mapper = json.load(jf)
+
     coco_images, coco_annotations, coco_categories = None, None, None
     if args.src_annotation == 'mscoco':
         if args.mscoco_hard:
@@ -103,8 +99,8 @@ if __name__ == '__main__':
             categories = {}
 
     from_args = {
-        'darknet': (darknet_mapper, args.ano_path if args.ano_path else None),
-        'pascalvoc': (pascalvoc_mapper, args.ano_path if args.ano_path else None),
+        'darknet': (class_mapper, args.ano_path if args.ano_path else None),
+        'pascalvoc': (class_mapper, args.ano_path if args.ano_path else None),
         'mscoco': (args.ano_path if args.ano_path else None, args.mscoco_hard,
                    coco_images, coco_annotations, coco_categories)
     }.get(args.src_annotation)
