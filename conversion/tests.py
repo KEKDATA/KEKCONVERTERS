@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import xml.etree.ElementTree as ET
 from functools import partial
 from collections import defaultdict
 
@@ -11,6 +12,86 @@ import conversion.converters.darknet as dn
 import conversion.converters.pascalvoc as pv
 from conversion.entities import KEKBox
 from conversion.utils import construct_annotation_file_path
+
+
+def compare_pascal_voc_bounding_boxes(first_box: ET.Element,
+                                      second_box: ET.Element,
+                                      precision: int = 10) -> bool:
+    try:
+        numerical_first_box = [
+            int(first_box.find('xmin').text),
+            int(first_box.find('xmax').text),
+            int(first_box.find('ymin').text),
+            int(first_box.find('ymax').text)
+        ]
+        numerical_second_box = [
+            int(second_box.find('xmin').text),
+            int(second_box.find('xmax').text),
+            int(second_box.find('ymin').text),
+            int(second_box.find('ymax').text)
+        ]
+        first_and_second_boxes = zip(numerical_first_box, numerical_second_box)
+        for first_box_coordinate, second_box_coordinate in \
+                first_and_second_boxes:
+            if abs(first_box_coordinate - second_box_coordinate) > precision:
+                return False
+        return True
+    except (AttributeError, TypeError, ValueError):
+        return False
+
+
+def compare_pascal_voc_objects(first_object: ET.Element,
+                               second_object: ET.Element,
+                               box_precision: int = 10) -> bool:
+    try:
+        first_object_name = first_object.find('name').text
+        second_object_name = second_object.find('name').text
+        if first_object_name != second_object_name:
+            return False
+        first_object_bndbox = first_object.find('bndbox')
+        second_object_bndbox = second_object.find('bndbox')
+        return compare_pascal_voc_bounding_boxes(
+            first_object_bndbox,
+            second_object_bndbox,
+            box_precision
+        )
+    except (AttributeError, TypeError):
+        return False
+
+
+def compare_pascal_voc_annotations(first_annotation: ET.Element,
+                                   second_annotation: ET.Element,
+                                   box_precision: int = 10) -> bool:
+    def object_sorter(object_: ET.Element) -> int:
+        """IN GOD WE TRUST"""
+        top_left_x = int(object_.find('bndbox').find('xmin').text)
+        return top_left_x
+
+    try:
+        first_annotation_filename = first_annotation.find('filename').text
+        second_annotation_filename = second_annotation.find('filename').text
+        if first_annotation_filename != second_annotation_filename:
+            return False
+        first_annotation_objects = sorted(
+            first_annotation.findall('object'),
+            key=object_sorter
+        )
+        second_annotation_objects = sorted(
+            second_annotation.findall('object'),
+            key=object_sorter
+        )
+        objects_to_compare = zip(
+            first_annotation_objects,
+            second_annotation_objects
+        )
+        for first_object, second_object in objects_to_compare:
+            return compare_pascal_voc_objects(
+                first_object,
+                second_object,
+                box_precision
+            )
+    except (AttributeError, TypeError):
+        return False
 
 
 def compare_darknet_labels(first_label: str, second_label: str,
@@ -290,3 +371,50 @@ def test_pascalvoc2darknet():
         for converted_label, true_label in zip(converted_darknet_labels,
                                                true_darknet_labels):
             assert compare_darknet_labels(converted_label, true_label)
+
+
+def test_darknet2pascalvoc():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'pascalvoc_and_darknet'
+    )
+    darknet_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'darknet'
+    )
+
+    # For comparison.
+    pascalvoc_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'pascalvoc'
+    )
+    darknet_mapper_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'class_mappers',
+        'darknet_mapper.json'
+    )
+    with open(darknet_mapper_path, 'r') as jf:
+        class_mapper = {int(class_id): class_name for class_id, class_name in
+                        json.load(jf).items()}
+    for img_id, img in enumerate(os.scandir(image_path)):
+        kek_image = dn.darknet2kek(
+            img,
+            img_id,
+            class_mapper,
+            darknet_annotation_path
+        )
+        converted_label = ET.fromstring(pv.kek2pascalvoc(kek_image))
+        true_label_path = construct_annotation_file_path(
+            img,
+            'xml',
+            pascalvoc_annotation_path
+        )
+        true_label = ET.parse(true_label_path).getroot()
+        assert compare_pascal_voc_annotations(true_label, converted_label)
