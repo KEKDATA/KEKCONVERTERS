@@ -5,7 +5,8 @@ from conversion.converters import converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
-def darknet2kek(image: os.DirEntry, image_id: int, class_mapper: Dict[str, str],
+def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str,
+                                                                       str],
                 base_annotation_path: str = None) -> KEKImage:
     """
     Converts Darknet annotation format for given image to KEKFormat
@@ -21,17 +22,17 @@ def darknet2kek(image: os.DirEntry, image_id: int, class_mapper: Dict[str, str],
     :return: KEKFormat representation.
     """
     # Necessary image data.
-    filename = image.name
-    image_shape = cu.get_image_shape(image)
+    filename = os.path.split(image_path)[-1]
+    image_shape = cu.get_image_shape(image_path)
 
     # Additional image data.
-    image_additional_data = cu.construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image_path)
 
     # Object data.
     txt_path = cu.construct_annotation_file_path(
-        image,
+        image_path,
         'txt',
-         base_annotation_path
+        base_annotation_path
     )
     with open(txt_path, 'r') as label_txt:
         darknet_labels = label_txt.readlines()

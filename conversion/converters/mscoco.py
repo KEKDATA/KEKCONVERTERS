@@ -68,16 +68,25 @@ def coco_annotations2kek_objects(
     return kek_objects
 
 
-def mscoco2kek(image: os.DirEntry,
+def mscoco2kek(image_path: str,
                base_annotation_path: str = None,
                hard: bool = True,
                coco_images: Dict[str, Dict[str, Union[int, str]]] = None,
                coco_annotations: Dict[int, List[Dict[str, Union[int, str, List[float]]]]] = None,
                coco_categories: Dict[int, Dict[str, Union[int, str]]] = None) -> KEKImage:
     if hard:
-        return mscoco_hard2kek(image, coco_images, coco_annotations, coco_categories)
+        return mscoco_hard2kek(
+            image_path,
+            coco_images,
+            coco_annotations,
+            coco_categories
+        )
     else:
-        return mscoco_simple2kek(image, base_annotation_path, coco_categories)
+        return mscoco_simple2kek(
+            image_path,
+            base_annotation_path,
+            coco_categories
+        )
 
 
 def kek2mscoco(kek_format: KEKImage,
@@ -128,10 +137,11 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
     return json_file, categories
 
 
-def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
+def mscoco_simple2kek(image_path: str, base_annotation_path: str,
                       coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
+    image_name = os.path.split(image_path)[-1]
     json_path = cu.construct_annotation_file_path(
-        image,
+        image_path,
         'json',
         base_annotation_path
     )
@@ -146,19 +156,19 @@ def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
     except KeyError:
         # FIXME:
         cu.warn_filename_not_found('HZ')
-        filename = image.name
+        filename = image_name
     try:
         width = image_dict['width']
         height = image_dict['height']
-        depth = cu.get_image_shape(image)[-1]
+        depth = cu.get_image_shape(image_path)[-1]
         image_shape = (width, height, depth)
     except KeyError:
-        image_shape = cu.get_image_shape(image)
+        image_shape = cu.get_image_shape(image_path)
 
     # Additional image data.
     # This keys should not be processed for additional image data.
     main_image_data_keys = ('id', 'file_name', 'width', 'height')
-    image_additional_data = cu.construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image_path)
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})
@@ -203,13 +213,14 @@ def kek2mscoco_hard(kek_format: KEKImage) -> Tuple[Dict[str, Union[int, str]],
     return image_dict, annotations, categories
 
 
-def mscoco_hard2kek(image: os.DirEntry, 
+def mscoco_hard2kek(image_path: str,
                     coco_images: Dict[str, Dict[str, Union[int, str]]],
                     coco_annotations: Dict[int, List[Dict[str, Union[int, str, List[float]]]]],
                     coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
     """Converts hard variant of MS COCO annotations. Hard MS COCO variant is variant where
     all information stores in one JSON file like source MS COCO trainval2017.json."""
-    image_dict = coco_images[image.name]
+    image_name = os.path.split(image_path)[-1]
+    image_dict = coco_images[image_name]
 
     # Main image data.
     image_id = image_dict['id']
@@ -218,19 +229,19 @@ def mscoco_hard2kek(image: os.DirEntry,
     except KeyError:
         # FIXME:
         cu.warn_filename_not_found('HZ')
-        filename = image.name
+        filename = image_name
     try:
         width = image_dict['width']
         height = image_dict['height']
-        depth = cu.get_image_shape(image)[-1]
+        depth = cu.get_image_shape(image_path)[-1]
         image_shape = (width, height, depth)
     except KeyError:
-        image_shape = cu.get_image_shape(image)
+        image_shape = cu.get_image_shape(image_path)
 
     # Additional image data.
     # This keys should not be processed for additional image data.
     main_image_data_keys = ('id', 'file_name', 'width', 'height')
-    image_additional_data = cu.construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image_path)
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})

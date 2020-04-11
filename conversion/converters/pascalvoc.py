@@ -92,7 +92,7 @@ def _get_name(object_element: ET.Element, xml_name: str) -> str:
     return name.text
 
 
-def pascalvoc2kek(image: os.DirEntry, image_id: int,
+def pascalvoc2kek(image_path: str, image_id: int,
                   class_mapper: Dict[str, int],
                   base_annotation_path: str = None) -> KEKImage:
     """
@@ -104,7 +104,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     :return:
     """
     xml_path = cu.construct_annotation_file_path(
-        image,
+        image_path,
         'xml',
         base_annotation_path
     )
@@ -114,7 +114,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     filename = annotation.find('filename')
     if filename is None:
         cu.warn_filename_not_found(os.path.split(xml_path)[-1])
-        filename = image.name
+        filename = os.path.split(image_path)[-1]
     else:
         filename = filename.text
     size = annotation.find('size')
@@ -124,7 +124,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
         depth = int(size.find('depth').text)
         image_shape = width, height, depth
     except (AttributeError, ValueError, TypeError):
-        image_shape = cu.get_image_shape(image)
+        image_shape = cu.get_image_shape(image_path)
 
     # These image tags should not be considered as additional data during
     # annotation tag parsing.
@@ -134,7 +134,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     # object tag parsing.
     main_object_tags = ('name', 'bndbox')
 
-    image_additional_data = cu.construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image_path)
     kek_objects = []
     for element in annotation:
         # Additional image data.
