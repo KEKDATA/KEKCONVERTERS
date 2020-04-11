@@ -1,13 +1,7 @@
 import os
-import json
 from typing import Dict, List
 
-from PIL import Image
-
-from conversion.utils import get_image_shape
-from conversion.utils import construct_annotation_file_path
-from conversion.utils import construct_additional_image_data
-from conversion.utils import construct_additional_object_data
+from conversion.converters import converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
@@ -28,14 +22,17 @@ def darknet2kek(image: os.DirEntry, image_id: int, class_mapper: Dict[str, str],
     """
     # Necessary image data.
     filename = image.name
-    image_shape = get_image_shape(image)
+    image_shape = cu.get_image_shape(image)
 
     # Additional image data.
-    image_additional_data = construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image)
 
     # Object data.
-    txt_path = construct_annotation_file_path(image, 'txt',
-                                              base_annotation_path)
+    txt_path = cu.construct_annotation_file_path(
+        image,
+        'txt',
+         base_annotation_path
+    )
     with open(txt_path, 'r') as label_txt:
         darknet_labels = label_txt.readlines()
     kek_objects = []
@@ -45,11 +42,15 @@ def darknet2kek(image: os.DirEntry, image_id: int, class_mapper: Dict[str, str],
         box = darknet_label[first_space + 1:]
         kek_box = KEKBox.from_darknet(box, image_shape)
         # Darknet has no additional data about objects on image except image id.
-        object_additional_data = construct_additional_object_data(image_id)
+        object_additional_data = cu.construct_additional_object_data(image_id)
         kek_objects.append(
-            KEKObject(class_id=int(class_id), kek_box=kek_box,
-                      class_name=class_mapper[class_id],
-                      object_additional_data=object_additional_data))
+            KEKObject(
+                class_id=int(class_id),
+                kek_box=kek_box,
+                class_name=class_mapper[class_id],
+                object_additional_data=object_additional_data
+            )
+        )
 
     return KEKImage(image_id, filename, image_shape, kek_objects,
                     image_additional_data)

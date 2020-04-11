@@ -5,11 +5,7 @@ from typing import Dict
 from collections import defaultdict
 from xml.dom.minidom import parseString
 
-from conversion.utils import get_image_shape
-from conversion.utils import warn_filename_not_found
-from conversion.utils import construct_annotation_file_path
-from conversion.utils import construct_additional_image_data
-from conversion.utils import construct_additional_object_data
+import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
@@ -107,16 +103,17 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     :param base_annotation_path:
     :return:
     """
-    xml_path = construct_annotation_file_path(
+    xml_path = cu.construct_annotation_file_path(
         image,
         'xml',
-        base_annotation_path)
+        base_annotation_path
+    )
     annotation = ET.parse(xml_path).getroot()
 
     # Necessary image data.
     filename = annotation.find('filename')
     if filename is None:
-        warn_filename_not_found(os.path.split(xml_path)[-1])
+        cu.warn_filename_not_found(os.path.split(xml_path)[-1])
         filename = image.name
     else:
         filename = filename.text
@@ -127,7 +124,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
         depth = int(size.find('depth').text)
         image_shape = width, height, depth
     except (AttributeError, ValueError, TypeError):
-        image_shape = get_image_shape(image)
+        image_shape = cu.get_image_shape(image)
 
     # These image tags should not be considered as additional data during
     # annotation tag parsing.
@@ -137,7 +134,7 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
     # object tag parsing.
     main_object_tags = ('name', 'bndbox')
 
-    image_additional_data = construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image)
     kek_objects = []
     for element in annotation:
         # Additional image data.
@@ -151,7 +148,9 @@ def pascalvoc2kek(image: os.DirEntry, image_id: int,
             kek_box = _get_kek_box(element, os.path.split(xml_path)[-1])
 
             # Additional object data.
-            object_additional_data = construct_additional_object_data(image_id)
+            object_additional_data = cu.construct_additional_object_data(
+                image_id
+            )
             for object_element in element:
                 if object_element.tag not in main_object_tags:
                     object_additional_data.update(_xml2dict(object_element))

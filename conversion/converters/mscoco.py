@@ -3,11 +3,7 @@ import json
 from collections import defaultdict
 from typing import List, Tuple, Dict, DefaultDict, Union
 
-from conversion.utils import get_image_shape
-from conversion.utils import warn_filename_not_found
-from conversion.utils import construct_annotation_file_path
-from conversion.utils import construct_additional_image_data
-from conversion.utils import construct_additional_object_data
+import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
@@ -57,7 +53,7 @@ def coco_annotations2kek_objects(
         # These keys should not be processed during object data dictionary
         # parsing.
         main_object_data_keys = ('category_id', 'bbox',)
-        object_additional_data = construct_additional_object_data(image_id)
+        object_additional_data = cu.construct_additional_object_data(image_id)
         for key, value in annotation.items():
             if key not in main_object_data_keys:
                 object_additional_data.update({key: value})
@@ -134,7 +130,7 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
 
 def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
                       coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
-    json_path = construct_annotation_file_path(
+    json_path = cu.construct_annotation_file_path(
         image,
         'json',
         base_annotation_path
@@ -149,20 +145,20 @@ def mscoco_simple2kek(image: os.DirEntry, base_annotation_path: str,
         filename = image_dict['file_name']
     except KeyError:
         # FIXME:
-        warn_filename_not_found('HZ')
+        cu.warn_filename_not_found('HZ')
         filename = image.name
     try:
         width = image_dict['width']
         height = image_dict['height']
-        depth = get_image_shape(image)[-1]
+        depth = cu.get_image_shape(image)[-1]
         image_shape = (width, height, depth)
     except KeyError:
-        image_shape = get_image_shape(image)
+        image_shape = cu.get_image_shape(image)
 
     # Additional image data.
     # This keys should not be processed for additional image data.
     main_image_data_keys = ('id', 'file_name', 'width', 'height')
-    image_additional_data = construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image)
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})
@@ -221,20 +217,20 @@ def mscoco_hard2kek(image: os.DirEntry,
         filename = image_dict['file_name']
     except KeyError:
         # FIXME:
-        warn_filename_not_found('HZ')
+        cu.warn_filename_not_found('HZ')
         filename = image.name
     try:
         width = image_dict['width']
         height = image_dict['height']
-        depth = get_image_shape(image)[-1]
+        depth = cu.get_image_shape(image)[-1]
         image_shape = (width, height, depth)
     except KeyError:
-        image_shape = get_image_shape(image)
+        image_shape = cu.get_image_shape(image)
 
     # Additional image data.
     # This keys should not be processed for additional image data.
     main_image_data_keys = ('id', 'file_name', 'width', 'height')
-    image_additional_data = construct_additional_image_data(image)
+    image_additional_data = cu.construct_additional_image_data(image)
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})

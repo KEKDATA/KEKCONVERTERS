@@ -10,8 +10,8 @@ import pytest
 import conversion.converters.mscoco as mc
 import conversion.converters.darknet as dn
 import conversion.converters.pascalvoc as pv
+import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox
-from conversion.utils import construct_annotation_file_path
 
 
 def compare_pascal_voc_bounding_boxes(first_box: ET.Element,
@@ -19,16 +19,16 @@ def compare_pascal_voc_bounding_boxes(first_box: ET.Element,
                                       precision: int = 10) -> bool:
     try:
         numerical_first_box = [
-            int(first_box.find('xmin').text),
-            int(first_box.find('xmax').text),
-            int(first_box.find('ymin').text),
-            int(first_box.find('ymax').text)
+            int(float(first_box.find('xmin').text)),
+            int(float(first_box.find('xmax').text)),
+            int(float(first_box.find('ymin').text)),
+            int(float(first_box.find('ymax').text))
         ]
         numerical_second_box = [
-            int(second_box.find('xmin').text),
-            int(second_box.find('xmax').text),
-            int(second_box.find('ymin').text),
-            int(second_box.find('ymax').text)
+            int(float(second_box.find('xmin').text)),
+            int(float(second_box.find('xmax').text)),
+            int(float(second_box.find('ymin').text)),
+            int(float(second_box.find('ymax').text))
         ]
         first_and_second_boxes = zip(numerical_first_box, numerical_second_box)
         for first_box_coordinate, second_box_coordinate in \
@@ -64,7 +64,10 @@ def compare_pascal_voc_annotations(first_annotation: ET.Element,
                                    box_precision: int = 10) -> bool:
     def object_sorter(object_: ET.Element) -> int:
         """IN GOD WE TRUST"""
-        top_left_x = int(object_.find('bndbox').find('xmin').text)
+        try:
+            top_left_x = int(object_.find('bndbox').find('xmin').text)
+        except ValueError:
+            top_left_x = float(object_.find('bndbox').find('xmin').text)
         return top_left_x
 
     try:
@@ -150,7 +153,8 @@ def test_darknet2darknet():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'darknet'
+        'darknet',
+        'source'
     )
     class_mapper_path = os.path.join(
         os.getcwd(),
@@ -165,7 +169,7 @@ def test_darknet2darknet():
         kek_image = dn.darknet2kek(img, img_id, class_mapper,
                                    source_annotation_path)
         dst_darknet_lines = dn.kek2darknet(kek_image)
-        txt_path = construct_annotation_file_path(
+        txt_path = cu.construct_annotation_file_path(
             img, 'txt', source_annotation_path)
         with open(txt_path, 'r') as tf:
             src_darknet_lines = tf.readlines()
@@ -184,7 +188,8 @@ def test_pascalvoc2pascalvoc():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'pascalvoc'
+        'pascalvoc',
+        'source'
     )
     class_mapper_path = os.path.join(
         os.getcwd(),
@@ -198,7 +203,7 @@ def test_pascalvoc2pascalvoc():
         kek_image = pv.pascalvoc2kek(
             img, img_id, class_mapper, source_annotation_path)
         dst_xml_string = pv.kek2pascalvoc(kek_image)
-        xml_path = construct_annotation_file_path(
+        xml_path = cu.construct_annotation_file_path(
             img, 'xml', source_annotation_path)
         with open(xml_path, 'r') as tf:
             src_xml_lines = set([line[:-1] for line in tf.readlines()])
@@ -243,7 +248,7 @@ def test_mscoco_simple2coco_simple():
             coco_categories=categories
         )
         dst_annotation, cats = mc.kek2mscoco(kek_image, hard=False)
-        src_annotation_path = construct_annotation_file_path(
+        src_annotation_path = cu.construct_annotation_file_path(
             img,
             'json',
             source_annotation_path
@@ -335,7 +340,8 @@ def test_pascalvoc2darknet():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'pascalvoc'
+        'pascalvoc',
+        'source'
     )
 
     # For comparison.
@@ -343,7 +349,8 @@ def test_pascalvoc2darknet():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'darknet'
+        'darknet',
+        'source'
     )
     pascalvoc_mapper_path = os.path.join(
         os.getcwd(),
@@ -361,7 +368,7 @@ def test_pascalvoc2darknet():
             pascalvoc_annotation_path
         )
         converted_darknet_labels = dn.kek2darknet(kek_image)
-        true_darknet_txt_path = construct_annotation_file_path(
+        true_darknet_txt_path = cu.construct_annotation_file_path(
             img,
             'txt',
             true_darknet_annotation_path
@@ -384,7 +391,8 @@ def test_darknet2pascalvoc():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'darknet'
+        'darknet',
+        'source'
     )
 
     # For comparison.
@@ -392,7 +400,8 @@ def test_darknet2pascalvoc():
         os.getcwd(),
         'test_data',
         'source_annotations',
-        'pascalvoc'
+        'pascalvoc',
+        'source'
     )
     darknet_mapper_path = os.path.join(
         os.getcwd(),
@@ -401,8 +410,6 @@ def test_darknet2pascalvoc():
         'darknet_mapper.json'
     )
     with open(darknet_mapper_path, 'r') as jf:
-        # class_mapper = {int(class_id): class_name for class_id, class_name in
-                        # json.load(jf).items()}
         class_mapper = json.load(jf)
     for img_id, img in enumerate(os.scandir(image_path)):
         kek_image = dn.darknet2kek(
@@ -412,10 +419,208 @@ def test_darknet2pascalvoc():
             darknet_annotation_path
         )
         converted_label = ET.fromstring(pv.kek2pascalvoc(kek_image))
-        true_label_path = construct_annotation_file_path(
+        true_label_path = cu.construct_annotation_file_path(
             img,
             'xml',
             pascalvoc_annotation_path
         )
         true_label = ET.parse(true_label_path).getroot()
         assert compare_pascal_voc_annotations(true_label, converted_label)
+
+
+def test_mscoco_simple2darknet():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'coco',
+        'coco_simple'
+    )
+    mscoco_annotation_path = os.path.join(
+       os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'multiple_files_mode'
+    )
+    mscoco_categories_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'multiple_files_mode',
+        'catids.json'
+    )
+
+    # For comparison.
+    darknet_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'darknet',
+        'for_mscoco_simple_conversion_test'
+    )
+    with open(mscoco_categories_path, 'r') as jf:
+        categories = {category['id']: category for category in json.load(jf)}
+    for img in os.scandir(image_path):
+        kek_image = mc.mscoco2kek(
+            img,
+            mscoco_annotation_path,
+            hard=False,
+            coco_categories=categories
+        )
+        converted_labels = dn.kek2darknet(kek_image)
+        true_labels_path = cu.construct_annotation_file_path(
+            img,
+            'txt',
+            darknet_annotation_path
+        )
+        with open(true_labels_path, 'r') as tf:
+            true_labels = tf.readlines()
+        for true_label, converted_label in zip(true_labels, converted_labels):
+            assert compare_darknet_labels(true_label, converted_label)
+
+
+def test_mscoco_simple2pascalvoc():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'coco',
+        'coco_simple'
+    )
+    mscoco_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'multiple_files_mode'
+    )
+    mscoco_categories_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'multiple_files_mode',
+        'catids.json'
+    )
+
+    # For comparison.
+    pascalvoc_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'pascalvoc',
+        'for_mscoco_simple_conversion_test'
+    )
+    with open(mscoco_categories_path, 'r') as jf:
+        categories = {category['id']: category for category in json.load(jf)}
+    for img in os.scandir(image_path):
+        kek_image = mc.mscoco2kek(
+            img,
+            mscoco_annotation_path,
+            hard=False,
+            coco_categories=categories
+        )
+        converted_label = ET.fromstring(pv.kek2pascalvoc(kek_image))
+        true_label_path = cu.construct_annotation_file_path(
+            img,
+            'xml',
+            pascalvoc_annotation_path
+        )
+        true_label = ET.parse(true_label_path).getroot()
+        assert compare_pascal_voc_annotations(true_label, converted_label)
+
+
+def test_mscoco_hard2pascalvoc():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'coco',
+        'coco_hard'
+    )
+    mscoco_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'single_file_mode',
+        'single.json'
+    )
+
+    # For comparison.
+    pascalvoc_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'pascalvoc',
+        'for_mscoco_hard_conversion_test'
+    )
+    coco_images, coco_annotations, coco_categories = mc.construct_mscoco_dicts(
+        mscoco_annotation_path
+    )
+    for img in os.scandir(image_path):
+        kek_image = mc.mscoco2kek(
+            img,
+            hard=True,
+            coco_images=coco_images,
+            coco_annotations=coco_annotations,
+            coco_categories=coco_categories
+        )
+        converted_label = ET.fromstring(pv.kek2pascalvoc(kek_image))
+        true_label_path = cu.construct_annotation_file_path(
+            img,
+            'xml',
+            pascalvoc_annotation_path
+        )
+        true_label = ET.parse(true_label_path).getroot()
+        assert compare_pascal_voc_annotations(true_label, converted_label)
+
+
+def test_mscoco_hard2darknet():
+    image_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'images',
+        'coco',
+        'coco_hard'
+    )
+    mscoco_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'mscoco',
+        'single_file_mode',
+        'single.json'
+    )
+
+    # For comparison.
+    darknet_annotation_path = os.path.join(
+        os.getcwd(),
+        'test_data',
+        'source_annotations',
+        'darknet',
+        'for_mscoco_hard_conversion_test'
+    )
+    coco_images, coco_annotations, coco_categories = mc.construct_mscoco_dicts(
+        mscoco_annotation_path
+    )
+    for img in os.scandir(image_path):
+        kek_image = mc.mscoco2kek(
+            img,
+            hard=True,
+            coco_images=coco_images,
+            coco_annotations=coco_annotations,
+            coco_categories=coco_categories
+        )
+        converted_label = dn.kek2darknet(kek_image)
+        true_label_path = cu.construct_annotation_file_path(
+            img,
+            'txt',
+            darknet_annotation_path
+        )
+        with open(true_label_path, 'r') as tf:
+            true_labels = tf.readlines()
+        for true_label, converted_label in zip(true_labels, converted_label):
+            assert compare_darknet_labels(true_label, converted_label)
