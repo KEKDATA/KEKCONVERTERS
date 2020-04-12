@@ -20,7 +20,7 @@ def construct_annotation_file_path(image_path: str,
         base_file_path = os.path.split(image_path)[0]
     else:
         base_file_path = base_annotation_path
-    annotation_filename = '.'.join([image_name, annotation_file_extension])
+    annotation_filename = ''.join([image_name, annotation_file_extension])
     return os.path.join(base_file_path, annotation_filename)
 
 
@@ -39,3 +39,11 @@ def construct_additional_image_data(image_path: str):
 
 def construct_additional_object_data(image_id: int):
     return {'image_id': image_id}
+
+
+def get_target_annotation_file_extension(target_annotation_name: str):
+    return {
+        'darknet': '.txt',
+        'pascalvoc': '.xml',
+        'mscoco': '.json'
+    }.get(target_annotation_name)

@@ -13,8 +13,8 @@ from conversion.converters import darknet as dn
 from conversion.converters import pascalvoc as pv
 
 
-def image_iter(path: str, image_exts: Iterable[str]) -> filter:
-    return filter(lambda filename: os.path.splitext(filename)[-1] in image_exts, os.scandir(path))
+def filter_by_extensions(filename, image_extensions):
+    return os.path.splitext(filename)[-1] in image_extensions
 
 
 def parse_args():
@@ -66,14 +66,6 @@ def get_source_mscoco_annotations(annotation_path: str, hard: bool,
             None,
             {category['id']: category for category in coco_categories}
         )
-
-
-def get_target_annotation_file_extension(target_annotation_name: str):
-    return {
-        'darknet': '.txt',
-        'pascalvoc': '.xml',
-        'mscoco': '.json'
-    }.get(target_annotation_name)
 
 
 def conversion_loop(
@@ -159,8 +151,12 @@ def get_chunks(image_paths, n_jobs):
             for i in range(n_jobs)]
 
 
-def get_full_paths(image_names, base_path):
-    return [os.path.join(base_path, image_name) for image_name in image_names]
+def get_full_paths(path_to_images, image_extensions):
+    full_image_paths = []
+    is_image = partial(filter_by_extensions, image_extensions=image_extensions)
+    for image_name in filter(is_image, os.listdir(path_to_images)):
+        full_image_paths.append(os.path.join(path_to_images, image_name))
+    return full_image_paths
 
 
 def process_conversion_results(results, save_path, mscoco_licenses_path=None,

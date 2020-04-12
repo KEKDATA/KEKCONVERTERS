@@ -3,6 +3,7 @@ import multiprocessing as mp
 from functools import partial
 from pprint import pprint
 
+import conversion.converters.converters_utils as cu
 
 from conversion.script_utils import parse_args
 from conversion.script_utils import get_chunks
@@ -13,7 +14,6 @@ from conversion.script_utils import get_class_mapper
 from conversion.script_utils import parse_config_file
 from conversion.script_utils import process_conversion_results
 from conversion.script_utils import get_source_mscoco_annotations
-from conversion.script_utils import get_target_annotation_file_extension
 
 
 if __name__ == '__main__':
@@ -45,12 +45,12 @@ if __name__ == '__main__':
             *mscoco_stuff
         )
     }.get(config_dict['target_annotation_name'])
-    save_annotation_file_extension = get_target_annotation_file_extension(
+    save_annotation_file_extension = cu.get_target_annotation_file_extension(
         config_dict['target_annotation_name']
     )
     image_paths = get_full_paths(
-        os.listdir(config_dict['path_to_images']),
-        config_dict['path_to_images']
+        config_dict['path_to_images'],
+        config_dict['image_extensions']
     )
     data_chunks = get_chunks(image_paths, config_dict['n_jobs'])
     partial_conversion_loop = partial(

@@ -105,7 +105,7 @@ def pascalvoc2kek(image_path: str, image_id: int,
     """
     xml_path = cu.construct_annotation_file_path(
         image_path,
-        'xml',
+        cu.get_target_annotation_file_extension('pascalvoc'),
         base_annotation_path
     )
     annotation = ET.parse(xml_path).getroot()

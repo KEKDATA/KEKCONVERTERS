@@ -140,7 +140,7 @@ def mscoco_simple2kek(image_path: str, base_annotation_path: str,
     image_name = os.path.split(image_path)[-1]
     json_path = cu.construct_annotation_file_path(
         image_path,
-        'json',
+        cu.get_target_annotation_file_extension('mscoco'),
         base_annotation_path
     )
     with open(json_path, 'r') as jf:

@@ -31,7 +31,7 @@ def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str,
     # Object data.
     txt_path = cu.construct_annotation_file_path(
         image_path,
-        'txt',
+        cu.get_target_annotation_file_extension('darknet'),
         base_annotation_path
     )
     with open(txt_path, 'r') as label_txt:
