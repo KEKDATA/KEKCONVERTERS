@@ -2,34 +2,15 @@
 import os
 import json
 import argparse as ap
+from functools import partial
 from typing import Iterable
 
+import yaml
+
+import conversion.converters.converters_utils as cu
 from conversion.converters import mscoco as mc
 from conversion.converters import darknet as dn
 from conversion.converters import pascalvoc as pv
-
-
-SRC_ANNOTATION_HELP = 'Source annotation type. One of \'darknet\', \'pascalvoc\', \'mscoco\'.'
-DST_ANNOTATION_HELP = 'Target annotation type. One of \'darknet\', \'pascalvoc\', \'mscoco\'.'
-IMAGE_PATH_HELP = 'Path to your images.'
-IMAGE_EXTS_HELP = 'Image extensions for your dataset separated by \',\'. For example \'.img,.jpeg,.jpg,.bmp\''
-ANNOTATION_PATH_HELP = 'Path to your source annotation files.'
-SAVE_PATH_HELP = 'Path to directory for new converted annotation files.'
-
-MSCOCO_HARD_HELP = """True if your source dataset annotation file is single file like source MS 
-COCO trainval2017."""
-MSCOCO_INFO_PATH_HELP = """If you want your hard MSCOCO single annotation file to contain the
-'info' section then provide path to your info.json to this argument."""
-MSCOCO_LICENSES_PATH_HELP = """If you want your hard MSCOCO single annotation file to contain the
-'licenses' section then provide path to your licenses.json to this argument."""
-MSCOCO_CATEGORIES_PATH_HELP = """If you use simple MSCOCO mode (when single image has single 
-annotation .json file) then you should provide path to MSCOCO categories.json file to this
-argument."""
-
-DARKNET_MAPPING_PATH_HELP = 'Path to mapper for integer class labels to string class labels for Darknet.'
-PASCALVOC_MAPPING_PATH_HELP = 'Path to mapper for string class labels to integer class labels for PASCAL VOC.'
-
-NJOBS_HELP = 'Amount of processes to use for conversion.'
 
 
 def image_iter(path: str, image_exts: Iterable[str]) -> filter:
@@ -38,21 +19,20 @@ def image_iter(path: str, image_exts: Iterable[str]) -> filter:
 
 def parse_args():
     parser = ap.ArgumentParser()
-    parser.add_argument('--src_annotation', '-sa', type=str, required=True, help=SRC_ANNOTATION_HELP)
-    parser.add_argument('--dst_annotation', '-da', type=str, required=True, help=DST_ANNOTATION_HELP)
-    parser.add_argument('--img_path', '-ip', type=str, required=True, help=IMAGE_PATH_HELP)
-    parser.add_argument('--img_exts', '-ie', type=str, required=True, help=IMAGE_EXTS_HELP)
-    parser.add_argument('--ano_path', '-ap', type=str, required=False, help=ANNOTATION_PATH_HELP)
-    parser.add_argument('--save_path', '-sp', type=str, required=True, help=SAVE_PATH_HELP)
-    parser.add_argument('--mscoco_hard', '-msh', type=bool, required=False, nargs='?', const=True, default=False,
-                        help=MSCOCO_HARD_HELP)
-    parser.add_argument('--mscoco_info_path', '-mip', type=str, required=False, help=MSCOCO_INFO_PATH_HELP)
-    parser.add_argument('--mscoco_licenses_path', '-mlp', type=str, required=False, help=MSCOCO_LICENSES_PATH_HELP)
-    parser.add_argument('--mscoco_categories_path', '-mcp', type=str, required=False, help=MSCOCO_CATEGORIES_PATH_HELP)
-    parser.add_argument('--class_mapper_path', '-cmp', type=str,
-                        required=False, help='Path to your mapping')
-    parser.add_argument('--n_jobs', '-j', type=int, required=False, default=None, help=NJOBS_HELP)
+    parser.add_argument(
+        '--path_to_yaml_config',
+        '-config',
+        type=str,
+        required=True,
+        help="Path to your .yaml configuration file"
+    )
     return parser.parse_args()
+
+
+def parse_config_file(path_to_config_file):
+    with open(path_to_config_file, 'r') as yf:
+        config_dict = yaml.load(yf, Loader=yaml.SafeLoader)
+    return config_dict
 
 
 def get_converters(source_annotation_name: str, target_annotation_name:str):
@@ -88,31 +68,145 @@ def get_source_mscoco_annotations(annotation_path: str, hard: bool,
         )
 
 
-def get_target_mscoco_dictionaries(hard: bool, mscoco_info_path: str = None,
-                                   mscoco_licenses_path: str = None):
-
-    if hard:
-        mscoco_big_dict = {}
-        if mscoco_info_path:
-            with open(mscoco_info_path, 'r') as jf:
-                mscoco_info_section = json.load(jf)
-            mscoco_big_dict['info'] = mscoco_info_section
-        if mscoco_licenses_path:
-            with open(mscoco_licenses_path, 'r') as jf:
-                mscoco_licenses_section = json.load(jf)
-            mscoco_big_dict['licenses'] = mscoco_licenses_section
-        mscoco_big_dict['images'] = []
-        mscoco_big_dict['annotations'] = []
-        mscoco_big_dict['categories'] = {}
-        return mscoco_big_dict, None
-    else:
-        categories = {}
-        return None, categories
-
-
 def get_target_annotation_file_extension(target_annotation_name: str):
     return {
         'darknet': '.txt',
         'pascalvoc': '.xml',
         'mscoco': '.json'
     }.get(target_annotation_name)
+
+
+def conversion_loop(
+        image_paths,
+        save_annotation_path,
+        source_annotation_name,
+        target_annotation_name,
+        from_converter_function,
+        from_converter_function_args,
+        to_converter_function,
+        target_annotation_file_extension,
+        mscoco_hard=False
+):
+    """GOD BLESS OUR CONVERSION, GUYS"""
+    categories = {}
+    coco_simple_categories = None
+    if target_annotation_name == 'mscoco' and mscoco_hard:
+        mscoco_main_dict = {
+            'images': [],
+            'annotations': [],
+            'categories': {}
+        }
+    else:
+        mscoco_main_dict = None
+    result_dict = {'mscoco_simple_categories': None, 'mscoco_main_dict': None}
+    for image_id, image_path in enumerate(image_paths):
+        if source_annotation_name == 'mscoco':
+            kek_format = from_converter_function(
+                image_path,
+                *from_converter_function_args
+            )
+        else:
+            kek_format = from_converter_function(
+                image_path,
+                image_id,
+                *from_converter_function_args
+            )
+        if target_annotation_name == 'mscoco' and mscoco_hard:
+            to_converter_function_args = (kek_format, mscoco_hard)
+        else:
+            to_converter_function_args = (kek_format, )
+        target_format = to_converter_function(*to_converter_function_args)
+        if len(target_format) == 2:
+            target_format, coco_simple_categories = target_format
+        if not mscoco_main_dict:
+            # Target format consists of multiple annotation files.
+            annotation_file_path = cu.construct_annotation_file_path(
+                image_path,
+                target_annotation_file_extension,
+                save_annotation_path
+            )
+            with open(annotation_file_path, 'w') as af:
+                writer_function = {
+                    'darknet': af.writelines,
+                    'pascalvoc': af.write,
+                    'mscoco': partial(json.dump, fp=af)
+                }.get(target_annotation_name)
+                writer_function(target_format)
+            if coco_simple_categories:
+                for category_id, category in coco_simple_categories.items():
+                    categories.update({category_id: category})
+        else:
+            # Target format is single HUGE BIG DICT, GUYS.
+            image_dict, annotations, categories = target_format
+            mscoco_main_dict['images'].append(image_dict)
+            mscoco_main_dict['annotations'].extend(annotations)
+            for category_id, category in categories.items():
+                mscoco_main_dict['categories'].update({category_id: category})
+    if coco_simple_categories:
+        result_dict['mscoco_simple_categories'] = categories
+    if mscoco_main_dict:
+        category_list = []
+        for category_id, category in mscoco_main_dict['categories'].items():
+            category_list.append(category)
+        mscoco_main_dict['categories'] = category_list
+        result_dict['mscoco_main_dict'] = mscoco_main_dict
+    return result_dict
+
+
+def get_chunks(image_paths, n_jobs):
+    div, mod = divmod(len(image_paths), n_jobs)
+    return [image_paths[i * div + min(i, mod):(i + 1) * div + min(i + 1, mod)]
+            for i in range(n_jobs)]
+
+
+def get_full_paths(image_names, base_path):
+    return [os.path.join(base_path, image_name) for image_name in image_names]
+
+
+def process_conversion_results(results, save_path, mscoco_licenses_path=None,
+                               mscoco_info_path=None):
+    if results[0]['mscoco_main_dict']:
+        # Due to the chosen parallelization strategy, we know for sure that
+        # inside the large MS COCO dictionary, the lists 'images' and
+        # 'annotations' are unique in terms of processes. However, we cannot be
+        # sure that the list with the categories is unique, because different
+        # images can have different objects that belong to the same category.
+        # Therefore, categories need to be filtered.
+        mscoco_main_dict = {}
+        if mscoco_info_path:
+            with open(mscoco_info_path, 'r') as jf:
+                info = json.load(jf)
+            mscoco_main_dict['info'] = info
+        if mscoco_licenses_path:
+            with open(mscoco_licenses_path, 'r') as jf:
+                licenses = json.load(jf)
+            mscoco_main_dict['licenses'] = licenses['licenses']
+        mscoco_main_dict['images'] = []
+        mscoco_main_dict['annotations'] = []
+        mscoco_main_dict['categories'] = []
+        unique_categories = {}
+        for result_dict in results:
+            mscoco_main_dict_piece = result_dict['mscoco_main_dict']
+            mscoco_main_dict['images'].extend(mscoco_main_dict_piece['images'])
+            mscoco_main_dict['annotations'].extend(
+                mscoco_main_dict_piece['annotations']
+            )
+            categories_piece = mscoco_main_dict_piece['categories']
+            for category in categories_piece:
+                unique_categories.update({category['id']: category})
+        category_list = [category for category in unique_categories.values()]
+        mscoco_main_dict['categories'].extend(category_list)
+        with open(os.path.join(save_path), 'w') as jf:
+            json.dump(mscoco_main_dict, jf)
+    elif results[0]['mscoco_simple_categories']:
+        # Different images might have objects with same categories. So result
+        # categories dictionary might contain same category entities and we
+        # need to filter it.
+        unique_categories = {}
+        for result_dict in results:
+            categories_dict = result_dict['mscoco_simple_categories']
+            for category_id, category in categories_dict.items():
+                unique_categories.update({category_id: category})
+        category_list = [category for category in unique_categories.values()]
+        with open(os.path.join(save_path, 'categories.json'), 'w') as jf:
+            json.dump(category_list, jf)

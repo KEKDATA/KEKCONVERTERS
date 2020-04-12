@@ -122,10 +122,8 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
                                  'bbox': kek_object.kek_box.to_coco_box()})
         annotations.append(ms_coco_metadata)
         category_dict = {
-            category_id: {
-                'category_id': category_id,
-                'name': kek_object.class_name
-            }
+            'category_id': category_id,
+            'name': kek_object.class_name
         }
         try:
             supercategory = kek_object.additional_data['supercategory']
