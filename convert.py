@@ -1,7 +1,5 @@
-import os
 import multiprocessing as mp
 from functools import partial
-from pprint import pprint
 
 import conversion.converters.converters_utils as cu
 
@@ -23,13 +21,12 @@ if __name__ == '__main__':
         config_dict['source_annotation_name'],
         config_dict['target_annotation_name']
     )
-
     class_mapper = None
     if config_dict['class_mapper_path']:
         class_mapper = get_class_mapper(config_dict['class_mapper_path'])
-
     mscoco_stuff = (None, None, None)
     if config_dict['source_annotation_name'] == 'mscoco':
+
         # coco_images, coco_annotations, coco_categories.
         mscoco_stuff = get_source_mscoco_annotations(
             config_dict['path_to_annotations'],

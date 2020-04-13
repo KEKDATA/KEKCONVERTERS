@@ -1,24 +1,25 @@
 import os
 import json
 from collections import defaultdict
-from typing import List, Tuple, Dict, DefaultDict, Union
+from typing import List, Tuple, Dict, DefaultDict, Union, Any
 
 import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
-def construct_mscoco_dicts(
-        coco_json_file_path: str) -> Tuple[Dict[str, Dict], 
-                                           DefaultDict[int, List],
-                                           Dict[int, Dict]]:
+def construct_mscoco_dicts(coco_json_file_path: str) -> \
+        Tuple[
+            Dict[str, Dict[str, Any]],
+            DefaultDict[int, List[Dict[str, Any]]],
+            Dict[int, Dict[str, Any]]
+        ]:
     """
     Constructs necessary dicts from MS COCO JSON file for faster search.
 
-    :param coco_json_file_path: Path to single MS COCO JSON file. Usually its a 
-                                trainval2017.json.
+    :param coco_json_file_path: Path to single MS COCO JSON file.
 
     :return: Dictionaries with images, annotations and categories organized for 
-             faster search.
+    faster search.
     """
     with open(coco_json_file_path, 'r') as jf:
         coco_json = json.load(jf)
@@ -26,24 +27,27 @@ def construct_mscoco_dicts(
     coco_annotations = defaultdict(list)
     for annotation in coco_json['annotations']:
         coco_annotations[annotation['image_id']].append(annotation)
-    coco_categories = {category['id']: category for category in coco_json['categories']}
+    coco_categories = {
+        category['id']: category for category in coco_json['categories']
+    }
     return coco_images, coco_annotations, coco_categories
 
 
 def coco_annotations2kek_objects(
         image_id: int,
-        annotations: List[Dict[str, Union[int, str, List[float]]]],
-        coco_categories: Dict[int,
-                              Dict[str, Union[int, str]]]) -> List[KEKObject]:
+        annotations: List[Dict[str, Any]],
+        coco_categories: Dict[int, Dict[str, Union[int, str]]]
+) -> List[KEKObject]:
     kek_objects = []
     for annotation in annotations:
+
         # Main object data.
         class_id = annotation['category_id']
         try:
             category = coco_categories[class_id]
         except KeyError:
-            # Some smart guys used string category_id in
-            # source annotation file.
+
+            # Some smart guys used string category_id in source annotation file.
             category = coco_categories[int(class_id)]
         class_id = int(class_id) - 1
         class_name = category['name']
@@ -57,6 +61,7 @@ def coco_annotations2kek_objects(
         for key, value in annotation.items():
             if key not in main_object_data_keys:
                 object_additional_data.update({key: value})
+
         # Category information is also information about object.
         main_object_category_keys = ('name', 'id')
         for key, value in category.items():
@@ -64,16 +69,17 @@ def coco_annotations2kek_objects(
                 object_additional_data.update({key: value})
         kek_objects.append(KEKObject(class_id, class_name, kek_box,
                                      object_additional_data))
-
     return kek_objects
 
 
-def mscoco2kek(image_path: str,
-               base_annotation_path: str = None,
-               hard: bool = True,
-               coco_images: Dict[str, Dict[str, Union[int, str]]] = None,
-               coco_annotations: Dict[int, List[Dict[str, Union[int, str, List[float]]]]] = None,
-               coco_categories: Dict[int, Dict[str, Union[int, str]]] = None) -> KEKImage:
+def mscoco2kek(
+        image_path: str,
+        base_annotation_path: str = None,
+        hard: bool = True,
+        coco_images: Dict[str, Dict[str, Any]] = None,
+        coco_annotations: Dict[int, List[Dict[str, Any]]] = None,
+        coco_categories: Dict[int, Dict[str, Union[int, str]]] = None
+) -> KEKImage:
     if hard:
         return mscoco_hard2kek(
             image_path,
@@ -89,19 +95,29 @@ def mscoco2kek(image_path: str,
         )
 
 
-def kek2mscoco(kek_format: KEKImage,
-               hard: bool = False) -> Union[Tuple[Dict[str, Union[int, str]],
-                                                  List[Dict[str, Union[int, str, List[float]]]],
-                                                  Dict[int, Dict[str, Union[int, str]]]],
-                                            Dict[str, Union[List[Dict[str, Union[List[float], int]]], int]]]:
+def kek2mscoco(kek_format: KEKImage, hard: bool = False) -> \
+        Union[
+            Tuple[
+                Dict[str, Any],
+                List[Dict[str, Any]],
+                Dict[int, Dict[str, Union[int, str]]]
+            ],
+            Tuple[
+                Dict[str, Any],
+                Dict[int, Dict[str, Union[int, str]]]
+            ]
+        ]:
     if hard:
         return kek2mscoco_hard(kek_format)
     else:
         return kek2mscoco_simple(kek_format)
 
 
-def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
-                                                                    Union[List[float], int]]], int]]:
+def kek2mscoco_simple(kek_image: KEKImage) -> \
+        Tuple[
+            Dict[str, Any],
+            Dict[int, Dict[str, Union[int, str]]]
+        ]:
     json_file = dict.fromkeys(('annotation', 'image'))
     categories = {}
 
@@ -135,8 +151,11 @@ def kek2mscoco_simple(kek_image: KEKImage) -> Dict[str, Union[List[Dict[str,
     return json_file, categories
 
 
-def mscoco_simple2kek(image_path: str, base_annotation_path: str,
-                      coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
+def mscoco_simple2kek(
+        image_path: str,
+        base_annotation_path: str,
+        coco_categories: Dict[int, Dict[str, Union[int, str]]]
+) -> KEKImage:
     image_name = os.path.split(image_path)[-1]
     json_path = cu.construct_annotation_file_path(
         image_path,
@@ -152,8 +171,8 @@ def mscoco_simple2kek(image_path: str, base_annotation_path: str,
     try:
         filename = image_dict['file_name']
     except KeyError:
-        # FIXME:
-        cu.warn_filename_not_found('HZ')
+        annotation_filename = os.path.splitext(image_name)[0] + '.json'
+        cu.warn_filename_not_found(annotation_filename)
         filename = image_name
     try:
         width = image_dict['width']
@@ -170,33 +189,45 @@ def mscoco_simple2kek(image_path: str, base_annotation_path: str,
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})
-
     annotations = labels['annotation']
-    kek_objects = coco_annotations2kek_objects(image_id, annotations,
-                                               coco_categories)
+    kek_objects = coco_annotations2kek_objects(
+        image_id,
+        annotations,
+        coco_categories
+    )
+    return KEKImage(
+        image_id,
+        filename,
+        image_shape,
+        kek_objects,
+        image_additional_data
+    )
 
-    return KEKImage(image_id, filename, image_shape, kek_objects,
-                    image_additional_data)
 
+def kek2mscoco_hard(kek_format: KEKImage) -> \
+        Tuple[
+            Dict[str, Any],
+            List[Dict[str, Any]],
+            Dict[int, Dict[str, Union[int, str]]]
+        ]:
 
-def kek2mscoco_hard(kek_format: KEKImage) -> Tuple[Dict[str, Union[int, str]],
-                                                    List[Dict[str, Union[int, str, List[float]]]],
-                                                    Dict[int, Dict[str, Union[int, str]]]]:
     # Image data.
     image_dict = kek_format.additional_data
     image_dict.update({'id': kek_format.id_})
     image_dict.update({'file_name': kek_format.filename})
     width, height, _ = kek_format.shape
     image_dict.update({'width': width, 'height': height})
-
     annotations = []
     categories = {}
     for kek_object in kek_format.kek_objects:
+
         # Object data.
         category_id = kek_object.class_id + 1
         ms_coco_metadata = kek_object.additional_data
-        ms_coco_metadata.update({'category_id': category_id,
-                                 'bbox': kek_object.kek_box.to_coco_box()})
+        ms_coco_metadata.update({
+            'category_id': category_id,
+            'bbox': kek_object.kek_box.to_coco_box()
+        })
         annotations.append(ms_coco_metadata)
 
         # Categories.
@@ -207,16 +238,15 @@ def kek2mscoco_hard(kek_format: KEKImage) -> Tuple[Dict[str, Union[int, str]],
         except KeyError:
             pass
         categories.update({category_id: category_dict})
-
     return image_dict, annotations, categories
 
 
-def mscoco_hard2kek(image_path: str,
-                    coco_images: Dict[str, Dict[str, Union[int, str]]],
-                    coco_annotations: Dict[int, List[Dict[str, Union[int, str, List[float]]]]],
-                    coco_categories: Dict[int, Dict[str, Union[int, str]]]) -> KEKImage:
-    """Converts hard variant of MS COCO annotations. Hard MS COCO variant is variant where
-    all information stores in one JSON file like source MS COCO trainval2017.json."""
+def mscoco_hard2kek(
+        image_path: str,
+        coco_images: Dict[str, Dict[str, Any]],
+        coco_annotations: Dict[int, List[Dict[str, Any]]],
+        coco_categories: Dict[int, Dict[str, Union[int, str]]]
+) -> KEKImage:
     image_name = os.path.split(image_path)[-1]
     image_dict = coco_images[image_name]
 
@@ -225,8 +255,7 @@ def mscoco_hard2kek(image_path: str,
     try:
         filename = image_dict['file_name']
     except KeyError:
-        # FIXME:
-        cu.warn_filename_not_found('HZ')
+        cu.warn_filename_not_found('')
         filename = image_name
     try:
         width = image_dict['width']
@@ -243,10 +272,16 @@ def mscoco_hard2kek(image_path: str,
     for key, value in image_dict.items():
         if key not in main_image_data_keys:
             image_additional_data.update({key: value})
-
     annotations = coco_annotations[image_id]
-    kek_objects = coco_annotations2kek_objects(image_id, annotations,
-                                               coco_categories)
-
-    return KEKImage(image_id, filename, image_shape, kek_objects,
-                    image_additional_data)
+    kek_objects = coco_annotations2kek_objects(
+        image_id,
+        annotations,
+        coco_categories
+    )
+    return KEKImage(
+        image_id,
+        filename,
+        image_shape,
+        kek_objects,
+        image_additional_data
+    )

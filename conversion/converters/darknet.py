@@ -5,22 +5,9 @@ from conversion.converters import converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
-def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str,
-                                                                       str],
+def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str, str],
                 base_annotation_path: str = None) -> KEKImage:
-    """
-    Converts Darknet annotation format for given image to KEKFormat
-    representation.
 
-    :param image: Source image;
-    :param image_id: Image ID, LOL;
-    :param class_mapper: Mapping for integer labels to string labels.
-                         For example, {0: 'car', 1: 'person', ...};
-    :param base_annotation_path: Path to directory which contains .txt
-                                 annotation files.
-
-    :return: KEKFormat representation.
-    """
     # Necessary image data.
     filename = os.path.split(image_path)[-1]
     image_shape = cu.get_image_shape(image_path)
@@ -42,7 +29,6 @@ def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str,
         class_id = darknet_label[:first_space]
         box = darknet_label[first_space + 1:]
         kek_box = KEKBox.from_darknet(box, image_shape)
-        # Darknet has no additional data about objects on image except image id.
         object_additional_data = cu.construct_additional_object_data(image_id)
         kek_objects.append(
             KEKObject(
@@ -53,8 +39,13 @@ def darknet2kek(image_path: str, image_id: int, class_mapper: Dict[str,
             )
         )
 
-    return KEKImage(image_id, filename, image_shape, kek_objects,
-                    image_additional_data)
+    return KEKImage(
+        image_id,
+        filename,
+        image_shape,
+        kek_objects,
+        image_additional_data
+    )
 
 
 def kek2darknet(kek_image: KEKImage) -> List[str]:
@@ -62,6 +53,7 @@ def kek2darknet(kek_image: KEKImage) -> List[str]:
     for kek_object in kek_image.kek_objects:
         class_id = str(kek_object.class_id)
         darknet_box = kek_object.kek_box.to_darknet_box(kek_image.shape)
-        darknet_labels.append(' '.join([class_id,
-                                        *map(str, darknet_box)]) + '\n')
+        darknet_labels.append(
+            ' '.join([class_id, *map(str, darknet_box)]) + '\n'
+        )
     return darknet_labels

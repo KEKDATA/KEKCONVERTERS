@@ -4,6 +4,7 @@ import random
 import xml.etree.ElementTree as ET
 from functools import partial
 from collections import defaultdict
+from typing import Dict, Any, Union
 
 import pytest
 
@@ -13,10 +14,15 @@ import conversion.converters.pascalvoc as pv
 import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox
 
+DARKNET_PRECISION = 10e-2
+PASCALVOC_PRECISION = 10
 
-def compare_pascal_voc_bounding_boxes(first_box: ET.Element,
-                                      second_box: ET.Element,
-                                      precision: int = 10) -> bool:
+
+def compare_pascal_voc_bounding_boxes(
+        first_box: ET.Element,
+        second_box: ET.Element,
+        precision: int = PASCALVOC_PRECISION
+) -> bool:
     try:
         numerical_first_box = [
             int(float(first_box.find('xmin').text)),
@@ -40,9 +46,11 @@ def compare_pascal_voc_bounding_boxes(first_box: ET.Element,
         return False
 
 
-def compare_pascal_voc_objects(first_object: ET.Element,
-                               second_object: ET.Element,
-                               box_precision: int = 10) -> bool:
+def compare_pascal_voc_objects(
+        first_object: ET.Element,
+        second_object: ET.Element,
+        box_precision: int = PASCALVOC_PRECISION
+) -> bool:
     try:
         first_object_name = first_object.find('name').text
         second_object_name = second_object.find('name').text
@@ -59,9 +67,11 @@ def compare_pascal_voc_objects(first_object: ET.Element,
         return False
 
 
-def compare_pascal_voc_annotations(first_annotation: ET.Element,
-                                   second_annotation: ET.Element,
-                                   box_precision: int = 10) -> bool:
+def compare_pascal_voc_annotations(
+        first_annotation: ET.Element,
+        second_annotation: ET.Element,
+        box_precision: int = PASCALVOC_PRECISION
+) -> bool:
     def object_sorter(object_: ET.Element) -> int:
         """IN GOD WE TRUST"""
         try:
@@ -97,8 +107,11 @@ def compare_pascal_voc_annotations(first_annotation: ET.Element,
         return False
 
 
-def compare_darknet_labels(first_label: str, second_label: str,
-                           precision: float = 10e-2) -> bool:
+def compare_darknet_labels(
+        first_label: str,
+        second_label: str,
+        precision: float = DARKNET_PRECISION
+) -> bool:
     numerical_first_label = map(float, first_label.split(' '))
     numerical_second_label = map(float, second_label.split(' '))
     first_and_second_labels = zip(numerical_first_label, numerical_second_label)
@@ -108,8 +121,11 @@ def compare_darknet_labels(first_label: str, second_label: str,
     return True
 
 
-def is_subdict(subdict: dict, dict_: dict,
-               comparator=lambda left, right: left == right) -> bool:
+def is_subdict(
+        subdict: Union[Dict[str, Any], Dict[int, Dict[str, Any]]],
+        dict_: Dict[str, Any],
+        comparator=lambda left, right: left == right
+) -> bool:
     try:
         for key in subdict.keys():
             if not comparator(subdict[key], dict_[key]):
@@ -119,7 +135,8 @@ def is_subdict(subdict: dict, dict_: dict,
         return False
 
 
-def kek_comparator(src_value, dst_value) -> bool:
+def kek_comparator(src_value: Union[list, str], dst_value: Union[tuple, int]) \
+        -> bool:
     if type(dst_value) is tuple and type(src_value) is list:
         if isinstance(dst_value[0], float):
             return all(abs(dv - sv) <= 0.01 for dv, sv in
@@ -173,7 +190,7 @@ def test_darknet2darknet():
         converted_labels = dn.kek2darknet(kek_image)
         txt_path = cu.construct_annotation_file_path(
             image_path,
-            'txt',
+            '.txt',
             darknet_annotation_path
         )
         with open(txt_path, 'r') as tf:
@@ -215,7 +232,7 @@ def test_pascalvoc2pascalvoc():
         converted_labels = pv.kek2pascalvoc(kek_image)
         xml_path = cu.construct_annotation_file_path(
             image_path,
-            'xml',
+            '.xml',
             pascalvoc_annotation_path
         )
         with open(xml_path, 'r') as tf:
@@ -267,7 +284,7 @@ def test_mscoco_simple2coco_simple():
         )
         true_label_path = cu.construct_annotation_file_path(
             image_path,
-            'json',
+            '.json',
             mscoco_annotation_path
         )
         with open(true_label_path, 'r') as jf:
@@ -391,7 +408,7 @@ def test_pascalvoc2darknet():
         converted_labels = dn.kek2darknet(kek_image)
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'txt',
+            '.txt',
             darknet_annotation_path
         )
         with open(true_labels_path, 'r') as tf:
@@ -442,7 +459,7 @@ def test_darknet2pascalvoc():
         converted_labels = ET.fromstring(pv.kek2pascalvoc(kek_image))
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'xml',
+            '.xml',
             pascalvoc_annotation_path
         )
         true_labels = ET.parse(true_labels_path).getroot()
@@ -494,7 +511,7 @@ def test_mscoco_simple2darknet():
         converted_labels = dn.kek2darknet(kek_image)
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'txt',
+            '.txt',
             darknet_annotation_path
         )
         with open(true_labels_path, 'r') as tf:
@@ -548,7 +565,7 @@ def test_mscoco_simple2pascalvoc():
         converted_labels = ET.fromstring(pv.kek2pascalvoc(kek_image))
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'xml',
+            '.xml',
             pascalvoc_annotation_path
         )
         true_labels = ET.parse(true_labels_path).getroot()
@@ -595,7 +612,7 @@ def test_mscoco_hard2pascalvoc():
         converted_labels = ET.fromstring(pv.kek2pascalvoc(kek_image))
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'xml',
+            '.xml',
             pascalvoc_annotation_path
         )
         true_labels = ET.parse(true_labels_path).getroot()
@@ -642,7 +659,7 @@ def test_mscoco_hard2darknet():
         converted_labels = dn.kek2darknet(kek_image)
         true_labels_path = cu.construct_annotation_file_path(
             image_path,
-            'txt',
+            '.txt',
             darknet_annotation_path
         )
         with open(true_labels_path, 'r') as tf:

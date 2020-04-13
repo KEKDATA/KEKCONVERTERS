@@ -2,7 +2,7 @@
 representation of different annotation formats like MS COCO, PASCAL VOC, Dark -
 net, etc."""
 from decimal import Decimal
-from typing import Iterable, Union, Tuple
+from typing import Iterable, Union, Tuple, Dict, Any
 
 
 class KEKBox:
@@ -10,16 +10,24 @@ class KEKBox:
 
                 [top left x, top left y, bottom right x, bottom right y]
     """
-    def __init__(self, top_left_x: int, top_left_y: int, bottom_right_x: int,
-                 bottom_right_y: int) -> None:
+    def __init__(
+            self,
+            top_left_x: int,
+            top_left_y: int,
+            bottom_right_x: int,
+            bottom_right_y: int
+    ) -> None:
         self.top_left_x = top_left_x
         self.top_left_y = top_left_y
         self.bottom_right_x = bottom_right_x
         self.bottom_right_y = bottom_right_y
 
     @classmethod
-    def from_darknet(cls, box: Union[Iterable[float], str],
-                     image_shape: Tuple[int, int, int]) -> 'KEKBox':
+    def from_darknet(
+            cls,
+            box: Union[Iterable[float], str],
+            image_shape: Tuple[int, int, int]
+    ) -> 'KEKBox':
         """
         Makes KEKBox from darknet box representation.
 
@@ -31,8 +39,11 @@ class KEKBox:
 
         :return: KEKBox.
         """
-        def convert(str_box: str, image_width: int,
-                    image_height: int) -> Tuple[int, int, int, int]:
+        def convert(
+                str_box: str,
+                image_width: int,
+                image_height: int
+        ) -> Tuple[int, int, int, int]:
             """
             Converts darknet box coordinates to KEK box coordinates.
 
@@ -42,8 +53,10 @@ class KEKBox:
 
             :return: KEK box coordinates.
             """
-            center_x, center_y, box_width, box_height = map(Decimal,
-                                                            str_box.split(' '))
+            center_x, center_y, box_width, box_height = map(
+                Decimal,
+                str_box.split(' ')
+            )
             denominator = Decimal('2.')
             scaled_top_left_x = center_x - box_width / denominator
             top_left_x = int(scaled_top_left_x * image_width)
@@ -63,14 +76,15 @@ class KEKBox:
                 bottom_right_x = image_width
             if bottom_right_y > image_height:
                 bottom_right_y = image_height
-
             return top_left_x, top_left_y, bottom_right_x, bottom_right_y
 
         image_width, image_height, _ = image_shape
         if not isinstance(box, str):
+
             # Sometimes it's float.
-            return cls(*convert(' '.join((map(str, box))), image_width,
-                                image_height))
+            return cls(
+                *convert(' '.join((map(str, box))), image_width, image_height)
+            )
         else:
             return cls(*convert(box, image_width, image_height))
 
@@ -130,15 +144,13 @@ class KEKObject:
     stored in class's fields. Additional information (PASCAL VOC <truncated>,
     MS COCO 'license', etc.) is stored in additional_data field in dictionary.
     For more information about KEKObject see README.md."""
-    def __init__(self, class_id: int, class_name: str, kek_box: KEKBox,
-                 object_additional_data: dict = None) -> None:
-        """
-        :param class_id: Integer label for class;
-        :param class_name: String label for class;
-        :param kek_box: Bounding-box in KEKBox format;
-        :param object_additional_data: Dictionary with additional data about
-        object. See README.md file for description.
-        """
+    def __init__(
+            self,
+            class_id: int,
+            class_name: str,
+            kek_box: KEKBox,
+            object_additional_data: dict = None
+    ) -> None:
         self.class_id = class_id
         self.class_name = class_name
         self.kek_box = kek_box
@@ -150,9 +162,13 @@ class KEKImage:
     image is stored in class's fields. Additional information (PASCAL VOC
     <segmented>, MSCOCO 'license', etc.) is stored in additional_data field.
     For more information about KEKImage see README.md."""
-    def __init__(self, id_: int, filename: str, image_shape: Tuple,
-                 kek_objects: Iterable[KEKObject],
-                 image_additional_data: dict = None) -> None:
+    def __init__(
+            self, id_: int,
+            filename: str,
+            image_shape: Tuple[int, int, int],
+            kek_objects: Iterable[KEKObject],
+            image_additional_data: Dict[str, Any] = None
+    ) -> None:
         self.id_ = id_
         self.filename = filename
         self.shape = image_shape

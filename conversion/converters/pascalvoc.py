@@ -1,40 +1,13 @@
-import json
 import os
 import xml.etree.ElementTree as ET
 from typing import Dict
-from collections import defaultdict
 from xml.dom.minidom import parseString
 
 import conversion.converters.converters_utils as cu
 from conversion.entities import KEKBox, KEKObject, KEKImage
 
 
-def _xml2dict(root):
-    """
-
-    :param root:
-    :return:
-    """
-    TEXT_TOKEN = '#text'
-    tree_dict = {root.tag: {} if root.attrib else None}
-    children = list(root)
-    if children:
-        children_dict = defaultdict(list)
-        for child_dict in map(_xml2dict, children):
-            for key, value in child_dict.items():
-                children_dict[key].append(value)
-        tree_dict = {root.tag: {key: value[0] if len(value) == 1 else value
-                                for key, value in children_dict.items()}}
-    if root.text:
-        text = root.text.strip()
-        if not children:
-            tree_dict[root.tag] = text
-        elif text:
-            tree_dict[root.tag][TEXT_TOKEN] = text
-    return tree_dict
-
-
-def _get_kek_box(object_element: ET.Element, xml_name: str) -> KEKBox:
+def get_kek_box(object_element: ET.Element, xml_name: str) -> KEKBox:
     """
     Converts PASCAL VOC 'bndbox' tag content to KEKBox.
 
@@ -50,29 +23,41 @@ def _get_kek_box(object_element: ET.Element, xml_name: str) -> KEKBox:
     """
     bndbox = object_element.find('bndbox')
     if bndbox is None:
-        raise ValueError('Annotation file {} has at least one object '
-                         'without bounding-box.'.format(xml_name))
+        raise ValueError(
+            'Annotation file {} has at least one object without '
+            'bounding-box.'.format(xml_name)
+        )
     xmin = bndbox.find('xmin')
     ymin = bndbox.find('ymin')
     xmax = bndbox.find('xmax')
     ymax = bndbox.find('ymax')
     if any((coordinate_tag is None
             for coordinate_tag in (xmin, ymin, xmax, ymax))):
-        raise ValueError('Annotation file {} has at least one object '
-                         'without coordinate tag.'.format(xml_name))
+        raise ValueError(
+            'Annotation file {} has at least one object without coordinate '
+            'tag.'.format(xml_name)
+        )
     top_left_x = xmin.text
     top_left_y = ymin.text
     bottom_right_x = xmax.text
     bottom_right_y = ymax.text
     if any((coordinate is None for coordinate in
             (top_left_x, top_left_y, bottom_right_x, bottom_right_y))):
-        raise ValueError('Annotation file {} has at least one object '
-                         'with empty coordinate tag.'.format(xml_name))
-    return KEKBox.from_voc((int(top_left_x), int(top_left_y),
-                            int(bottom_right_x), int(bottom_right_y)))
+        raise ValueError(
+            'Annotation file {} has at least one object with empty coordinate '
+            'tag.'.format(xml_name)
+        )
+    return KEKBox.from_voc(
+        (
+            int(top_left_x),
+            int(top_left_y),
+            int(bottom_right_x),
+            int(bottom_right_y)
+        )
+    )
 
 
-def _get_name(object_element: ET.Element, xml_name: str) -> str:
+def get_name(object_element: ET.Element, xml_name: str) -> str:
     """
     Converts PASCAL VOC 'bndbox''s 'name' tag content to string. Surprisingly.
 
@@ -83,26 +68,24 @@ def _get_name(object_element: ET.Element, xml_name: str) -> str:
     """
     name = object_element.find('name')
     if name is None:
-        raise ValueError('Annotation file {} has at least one object '
-                         'without class name.'.format(xml_name))
+        raise ValueError(
+            'Annotation file {} has at least one object without class '
+            'name.'.format(xml_name)
+        )
     if not name.text:
-        raise ValueError('Annotation file {} has at least one '
-                         'object with empty <name></name> '
-                         'tag.'.format(xml_name))
+        raise ValueError(
+            'Annotation file {} has at least one object with empty '
+            '<name></name> tag.'.format(xml_name)
+        )
     return name.text
 
 
-def pascalvoc2kek(image_path: str, image_id: int,
-                  class_mapper: Dict[str, int],
-                  base_annotation_path: str = None) -> KEKImage:
-    """
-
-    :param image:
-    :param image_id:
-    :param class_mapper:
-    :param base_annotation_path:
-    :return:
-    """
+def pascalvoc2kek(
+        image_path: str,
+        image_id: int,
+        class_mapper: Dict[str, int],
+        base_annotation_path: str = None
+) -> KEKImage:
     xml_path = cu.construct_annotation_file_path(
         image_path,
         cu.get_target_annotation_file_extension('pascalvoc'),
@@ -133,19 +116,19 @@ def pascalvoc2kek(image_path: str, image_id: int,
     # These object tags should not be considered as additional data during
     # object tag parsing.
     main_object_tags = ('name', 'bndbox')
-
     image_additional_data = cu.construct_additional_image_data(image_path)
     kek_objects = []
     for element in annotation:
+
         # Additional image data.
         if element.tag not in main_image_tags:
-            image_additional_data.update(_xml2dict(element))
-
+            image_additional_data.update(cu.xml2dict(element))
         elif element.tag == 'object':
+
             # Necessary object data.
-            class_name = _get_name(element, os.path.split(xml_path)[-1])
+            class_name = get_name(element, os.path.split(xml_path)[-1])
             class_id = class_mapper[class_name]
-            kek_box = _get_kek_box(element, os.path.split(xml_path)[-1])
+            kek_box = get_kek_box(element, os.path.split(xml_path)[-1])
 
             # Additional object data.
             object_additional_data = cu.construct_additional_object_data(
@@ -153,49 +136,24 @@ def pascalvoc2kek(image_path: str, image_id: int,
             )
             for object_element in element:
                 if object_element.tag not in main_object_tags:
-                    object_additional_data.update(_xml2dict(object_element))
-
+                    object_additional_data.update(cu.xml2dict(object_element))
             kek_objects.append(KEKObject(class_id, class_name, kek_box,
                                          object_additional_data))
-
-    return KEKImage(image_id, filename, image_shape, kek_objects,
-                    image_additional_data)
+    return KEKImage(
+        image_id,
+        filename,
+        image_shape,
+        kek_objects,
+        image_additional_data
+    )
 
 
 def kek2pascalvoc(kek_image: KEKImage):
-    """
-
-    :param kek_image:
-    :return:
-    """
-    def append_data_from_dict_to_xml(key, value, root):
-        """
-
-        :param key:
-        :param value:
-        :param root:
-        :return:
-        """
-        TEXT_MARK = '#'
-        if key.startswith(TEXT_MARK):
-            root.text = value
-        elif (isinstance(value, str) or isinstance(value, float) or
-              isinstance(value, int)):
-            sub = ET.SubElement(root, key)
-            sub.text = str(value)
-        elif isinstance(value, dict):
-            sub_root = ET.SubElement(root, key)
-            for sub_key, sub_value in value.items():
-                append_data_from_dict_to_xml(sub_key, sub_value, sub_root)
-        elif isinstance(value, list):
-            for element in value:
-                append_data_from_dict_to_xml(key, element, root)
-
     annotation = ET.Element('annotation')
 
     # Main image data.
-    append_data_from_dict_to_xml('filename', kek_image.filename, annotation)
-    append_data_from_dict_to_xml(
+    cu.append_data_from_dict_to_xml('filename', kek_image.filename, annotation)
+    cu.append_data_from_dict_to_xml(
         'size',
         dict(zip(('width', 'height', 'depth'), kek_image.shape)),
         annotation
@@ -203,15 +161,14 @@ def kek2pascalvoc(kek_image: KEKImage):
 
     # Additional image data.
     for k, v in kek_image.additional_data.items():
-        append_data_from_dict_to_xml(k, v, annotation)
-
+        cu.append_data_from_dict_to_xml(k, v, annotation)
     for kek_object in kek_image.kek_objects:
         object_ = ET.SubElement(annotation, 'object')
 
         # Main object data.
-        append_data_from_dict_to_xml('name', kek_object.class_name, object_)
+        cu.append_data_from_dict_to_xml('name', kek_object.class_name, object_)
         kek_box = kek_object.kek_box.to_voc_box()
-        append_data_from_dict_to_xml(
+        cu.append_data_from_dict_to_xml(
             'bndbox ',
             dict(zip(('xmin', 'ymin', 'xmax', 'ymax'), kek_box)),
             object_
@@ -219,7 +176,7 @@ def kek2pascalvoc(kek_image: KEKImage):
 
         # Additional object data.
         for k, v in kek_object.additional_data.items():
-            append_data_from_dict_to_xml(k, v, object_)
+            cu.append_data_from_dict_to_xml(k, v, object_)
 
     # We don't need header with xml version.
     xml_string = '\n'.join(
