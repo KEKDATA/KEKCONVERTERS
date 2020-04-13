@@ -1,8 +1,9 @@
 import multiprocessing as mp
 from functools import partial
 
-import conversion.converters.converters_utils as cu
+import tqdm
 
+import conversion.converters.converters_utils as cu
 from conversion.script_utils import parse_args
 from conversion.script_utils import get_chunks
 from conversion.script_utils import get_full_paths
@@ -61,8 +62,14 @@ if __name__ == '__main__':
         target_annotation_file_extension=save_annotation_file_extension,
         mscoco_hard=config_dict['mscoco_hard_mode']
     )
+    total_volume = len(image_paths)
     with mp.Pool(processes=config_dict['n_jobs']) as pool:
-        results = pool.map(partial_conversion_loop, data_chunks)
+        results = list(
+            tqdm.tqdm(
+                pool.map(partial_conversion_loop, data_chunks),
+                total=total_volume
+            )
+        )
     process_conversion_results(
         results,
         config_dict['save_path'],
