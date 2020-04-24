@@ -285,3 +285,59 @@ def mscoco_hard2kek(
         kek_objects,
         image_additional_data
     )
+
+
+def save_annotation(path: str, annotation: Dict[str, Any]) -> None:
+    with open(path, 'w') as jf:
+        json.dump(annotation, jf)
+
+
+def save_categories(path: str, categories: List[Dict[str: Any]]) -> None:
+    unique_categories = {}
+    for result_dict in categories:
+        categories_dict = result_dict['mscoco_simple_categories']
+        for category_id, category in categories_dict.items():
+            unique_categories.update({category_id: category})
+    category_list = [category for category in unique_categories.values()]
+    with open(os.path.join(path), 'w') as jf:
+        json.dump(category_list, jf)
+
+
+def create_mscoco_big_dict(
+        results,
+        mscoco_info_path=None,
+        mscoco_licenses_path=None
+):
+    mscoco_main_dict = {}
+    if mscoco_info_path:
+        add_info_section(mscoco_info_path, mscoco_main_dict)
+    if mscoco_licenses_path:
+        add_licenses_section(mscoco_licenses_path, mscoco_main_dict)
+    mscoco_main_dict['images'] = []
+    mscoco_main_dict['annotations'] = []
+    mscoco_main_dict['categories'] = []
+    unique_categories = {}
+    for result_dict in results:
+        mscoco_main_dict_piece = result_dict['mscoco_main_dict']
+        mscoco_main_dict['images'].extend(mscoco_main_dict_piece['images'])
+        mscoco_main_dict['annotations'].extend(
+            mscoco_main_dict_piece['annotations']
+        )
+        categories_piece = mscoco_main_dict_piece['categories']
+        for category in categories_piece:
+            unique_categories.update({category['id']: category})
+    category_list = [category for category in unique_categories.values()]
+    mscoco_main_dict['categories'].extend(category_list)
+    return mscoco_main_dict
+
+
+def add_info_section(path_to_info_section, dict_to_add):
+    with open(path_to_info_section, 'r') as jf:
+        info = json.load(jf)
+    dict_to_add['info'] = info
+
+
+def add_licenses_section(path_to_licenses_section, dict_to_add):
+    with open(path_to_licenses_section, 'r') as jf:
+        licenses = json.load(jf)
+    dict_to_add['licenses'] = licenses['licenses']

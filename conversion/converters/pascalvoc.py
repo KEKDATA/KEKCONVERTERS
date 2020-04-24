@@ -183,3 +183,8 @@ def kek2pascalvoc(kek_image: KEKImage):
         parseString(ET.tostring(annotation)).toprettyxml().split('\n')[1:]
     )
     return xml_string
+
+
+def save_annotation(path: str, annotation: str) -> None:
+    with open(path, 'w') as tf:
+        tf.write(annotation)

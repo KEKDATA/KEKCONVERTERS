@@ -50,6 +50,14 @@ def get_converters(source_annotation_name: str, target_annotation_name: str) \
     return from_converter, to_converter
 
 
+def get_saver(target_annotation_name: str) -> Callable:
+    return {
+        'darknet': dn.save_annotation,
+        'pascalvoc': pv.save_annotation,
+        'mscoco': pv.save_annotation
+    }.get(target_annotation_name)
+
+
 def get_class_mapper(class_mapper_path: str) -> Dict[str, Any]:
     with open(class_mapper_path, 'r') as jf:
         return json.load(jf)
@@ -91,6 +99,7 @@ def conversion_loop(
         from_converter_function: Callable,
         from_converter_function_args: tuple,
         to_converter_function: Callable,
+        save_function: Callable,
         target_annotation_file_extension: str,
         mscoco_hard: bool = False
 ) -> Dict[
@@ -146,13 +155,14 @@ def conversion_loop(
                 target_annotation_file_extension,
                 save_annotation_path
             )
-            with open(annotation_file_path, 'w') as af:
-                writer_function = {
-                    'darknet': af.writelines,
-                    'pascalvoc': af.write,
-                    'mscoco': partial(json.dump, fp=af)
-                }.get(target_annotation_name)
-                writer_function(target_format)
+            save_function(annotation_file_path, target_format)
+            # with open(annotation_file_path, 'w') as af:
+            #     writer_function = {
+            #         'darknet': af.writelines,
+            #         'pascalvoc': af.write,
+            #         'mscoco': partial(json.dump, fp=af)
+            #     }.get(target_annotation_name)
+            #     writer_function(target_format)
             if coco_simple_categories:
                 for category_id, category in coco_simple_categories.items():
                     categories.update({category_id: category})
@@ -212,49 +222,11 @@ def process_conversion_results(
         mscoco_info_path: str = None
 ) -> None:
     if results[0]['mscoco_main_dict']:
-
-        # Due to the chosen parallelization strategy, we know for sure that
-        # inside the large MS COCO dictionary, the lists 'images' and
-        # 'annotations' are unique in terms of processes. However, we cannot be
-        # sure that the list with the categories is unique, because different
-        # images can have different objects that belong to the same category.
-        # Therefore, categories need to be filtered.
-        mscoco_main_dict = {}
-        if mscoco_info_path:
-            with open(mscoco_info_path, 'r') as jf:
-                info = json.load(jf)
-            mscoco_main_dict['info'] = info
-        if mscoco_licenses_path:
-            with open(mscoco_licenses_path, 'r') as jf:
-                licenses = json.load(jf)
-            mscoco_main_dict['licenses'] = licenses['licenses']
-        mscoco_main_dict['images'] = []
-        mscoco_main_dict['annotations'] = []
-        mscoco_main_dict['categories'] = []
-        unique_categories = {}
-        for result_dict in results:
-            mscoco_main_dict_piece = result_dict['mscoco_main_dict']
-            mscoco_main_dict['images'].extend(mscoco_main_dict_piece['images'])
-            mscoco_main_dict['annotations'].extend(
-                mscoco_main_dict_piece['annotations']
-            )
-            categories_piece = mscoco_main_dict_piece['categories']
-            for category in categories_piece:
-                unique_categories.update({category['id']: category})
-        category_list = [category for category in unique_categories.values()]
-        mscoco_main_dict['categories'].extend(category_list)
-        with open(os.path.join(save_path), 'w') as jf:
-            json.dump(mscoco_main_dict, jf)
+        mscoco_main_dict = mc.create_mscoco_big_dict(
+            results,
+            mscoco_info_path,
+            mscoco_licenses_path
+        )
+        mc.save_annotation(save_path, mscoco_main_dict)
     elif results[0]['mscoco_simple_categories']:
-
-        # Different images might have objects with same categories. So result
-        # categories dictionary might contain same category entities and we
-        # need to filter it.
-        unique_categories = {}
-        for result_dict in results:
-            categories_dict = result_dict['mscoco_simple_categories']
-            for category_id, category in categories_dict.items():
-                unique_categories.update({category_id: category})
-        category_list = [category for category in unique_categories.values()]
-        with open(os.path.join(save_path, 'categories.json'), 'w') as jf:
-            json.dump(category_list, jf)
+        mc.save_categories(save_path, results)

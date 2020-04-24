@@ -57,3 +57,8 @@ def kek2darknet(kek_image: KEKImage) -> List[str]:
             ' '.join([class_id, *map(str, darknet_box)]) + '\n'
         )
     return darknet_labels
+
+
+def save_annotation(path: str, annotation: List[str]) -> None:
+    with open(path, 'w') as tf:
+        tf.writelines(annotation)

@@ -4,6 +4,7 @@ from functools import partial
 import tqdm
 
 import conversion.converters.converters_utils as cu
+from conversion.script_utils import get_saver
 from conversion.script_utils import parse_args
 from conversion.script_utils import get_chunks
 from conversion.script_utils import get_full_paths
@@ -22,6 +23,7 @@ if __name__ == '__main__':
         config_dict['source_annotation_name'],
         config_dict['target_annotation_name']
     )
+    saver = get_saver(config_dict['target_annotation_name'])
     class_mapper = None
     if config_dict['class_mapper_path']:
         class_mapper = get_class_mapper(config_dict['class_mapper_path'])
@@ -59,6 +61,7 @@ if __name__ == '__main__':
         from_converter_function=from_converter,
         from_converter_function_args=from_args,
         to_converter_function=to_converter,
+        save_function=saver,
         target_annotation_file_extension=save_annotation_file_extension,
         mscoco_hard=config_dict['mscoco_hard_mode']
     )
