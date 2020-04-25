@@ -1,0 +1,14 @@
+{
+  "licenses": [
+    {
+      "url": "www.google.com",
+      "id": 0,
+      "name": "COOL LICENSE 0"
+    },
+    {
+      "url": "www.yandex.ru",
+      "id": 1,
+      "name": "COOL LICENSE 1"
+    }
+  ]
+}

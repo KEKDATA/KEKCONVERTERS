@@ -1,0 +1,26 @@
+<annotation>
+	<folder>darknet</folder>
+	<filename>114.jpg</filename>
+	<path>/home/wammy/PycharmProjects/kekconverters/test_data/conversion_src/darknet/114.jpg</path>
+	<source>
+		<database>Unknown</database>
+	</source>
+	<size>
+		<width>1280</width>
+		<height>1024</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<object>
+		<name>traffic_light</name>
+		<pose>Unspecified</pose>
+		<truncated>1</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>836</xmin>
+			<ymin>1</ymin>
+			<xmax>956</xmax>
+			<ymax>60</ymax>
+		</bndbox>
+	</object>
+</annotation>

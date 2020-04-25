@@ -1,0 +1,79 @@
+# Name of your source annotation format FROM WHICH you want to convert.
+# Currently support only 'darknet', 'pascalvoc' and 'mscoco'.
+source_annotation_name: "darknet"
+
+# Name of your target annotation format TO WHICH you want to convert.
+# Currently support only 'darknet', 'pascalvoc', 'mscoco'.
+target_annotation_name: "pascalvoc"
+
+# Path to folder of your images. God bless you if you provide full path.
+path_to_images: "/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/images/pascalvoc_and_darknet"
+
+# Path to folder of your source annotation files. God bless you if you provide
+# full path. Note that if you didn't provide this path then converter script
+# will assume that your annotation files lies in a same directory with your
+# image files.
+#
+# If you are making conversion from MS COCO simple mode (one .json file to every
+# image and one categories.json for all images) then specify in this parameter
+# only path to images.
+#
+# If you are making conversion from MS COCO hard mode (single .json file for all
+# images) then specify path to this single .json file in this parameter. For
+# example:
+# path_to_annotations: "/home/your_user_name/your_annotation_folder/val2017.json"
+path_to_annotations: "/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/source_annotations/darknet/source"
+
+# Path to folder or smth in which you want to save your converted annotation
+# files. God bless you if you provide full path.
+#
+# If you are making conversion to MS COCO simple mode (one .json file to every
+# image and one categories.json for all images) then specify in this parameter
+# only path to folder which you want to contains converted annotation files.
+# Dictionary with separated categories will be also saved to this folder with
+# name `categories.json`.
+#
+# If you are making conversion to MS COCO hard mode (single .json file for all
+# images) then specify path to this single .json file in this parameter. For
+# example:
+# save_path: "/home/your_user_name/your_target_folder/main_dict.json"
+save_path: "/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/converted_annotations/pascalvoc"
+
+# Images with this extensions will be processed during conversion procedure.
+image_extensions:
+  - ".jpg"
+  - ".jpeg"
+  - ".png"
+  - ".bmp"
+  - ".tiff"
+
+# Set this parameter to `true` if you use either to MS COCO hard mode conversion
+# or from MS COCO hard mode conversion.
+mscoco_hard_mode: false
+
+# Path to .json file which contains information about your dataset. Similar to
+# standard MS COCO annotation format 'info' key. Provide this path to this
+# parameter only for conversion which has MS COCO hard target format and you
+# want it to contain 'info' section.
+mscoco_info_section_path:
+
+# Path to .json file which contains information about the licenses for your
+# dataset. Similar to standard MS COCO annotation format 'licenses' key. Provide
+# this path to this parameter only for conversion which has MS COCO hard target
+# format and you want it to contain 'licenses' section.
+mscoco_licenses_section_path:
+
+# Path to .json file which contains information about categories for NS COCO
+# simple mode annotation format. Provide this path to this parameter only for
+# conversion which has MS COCO simple source format.
+mscoco_simple_categories_path:
+
+# Path to .json file which contains class mapping rules for class index to class
+# name or vice versa. If your source annotation format is PASCAL VOC then this
+# .json file will be like {'car': '0', 'person': '1', ...}, otherwise if your
+# source  annotation format is DARKNET then this .json file will be like
+# {'0': 'car', '1': 'person', ...}
+class_mapper_path: "/home/wammy/PycharmProjects/KEKCONVERTERS/test_data/class_mappers/darknet_mapper.json"
+
+# Number of processes to use during conversion procedure.
+n_jobs: 4
